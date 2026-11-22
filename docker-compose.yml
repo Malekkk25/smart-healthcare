@@ -11,6 +11,78 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------------------------------------------------------------- Partie 1 (personne A)
+
+  soap-ehr:
+    build:
+      context: .
+      dockerfile: services/soap-ehr/Dockerfile
+    container_name: smart-healthcare-soap-ehr
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/ehr_db
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  rest-portal:
+    build:
+      context: .
+      dockerfile: services/rest-portal/Dockerfile
+    container_name: smart-healthcare-rest-portal
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/portal_db
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    container_name: smart-healthcare-gateway
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET manquant dans .env}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:?DEMO_PASSWORD manquant dans .env}
+      CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - soap-ehr
+      - rest-portal
+
+  web-client:
+    build:
+      context: ./web-client
+      args:
+        VITE_API_URL: http://localhost:8080
+    container_name: smart-healthcare-web-client
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+
+  # ---------------------------------------------------------------- Partie 2 (personne B)
+  # À ajouter par B : grpc-telemetry (9090), graphql-dashboard (8083), orchestrator (8085), ai-triage (8086).
+  # Variables attendues par la gateway : DASHBOARD_URL, DASHBOARD_WS_URL, ORCHESTRATOR_URL
+  # (par défaut http://graphql-dashboard:8083, ws://graphql-dashboard:8083, http://orchestrator:8085).
 
 volumes:
   postgres_data:
