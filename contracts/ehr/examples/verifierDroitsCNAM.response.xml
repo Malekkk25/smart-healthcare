@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ehr="http://smarthealthcare.tn/ehr">
+  <soapenv:Body>
+    <ehr:verifierDroitsCNAMResponse>
+      <ehr:droitsOuverts>true</ehr:droitsOuverts>
+      <ehr:tauxRemboursement>80</ehr:tauxRemboursement>
+      <ehr:motif>Assuré actif, acte CS pris en charge à 80%</ehr:motif>
+    </ehr:verifierDroitsCNAMResponse>
+  </soapenv:Body>
+</soapenv:Envelope>

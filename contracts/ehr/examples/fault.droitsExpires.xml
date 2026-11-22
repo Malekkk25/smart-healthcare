@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ehr="http://smarthealthcare.tn/ehr">
+  <soapenv:Body>
+    <soapenv:Fault>
+      <faultcode>soapenv:Client</faultcode>
+      <faultstring>Droits expirés</faultstring>
+      <detail>
+        <ehr:DroitsExpiresFault>
+          <ehr:patientId>PAT-1002</ehr:patientId>
+          <ehr:dateExpiration>2026-06-30</ehr:dateExpiration>
+          <ehr:message>Les droits CNAM du patient ont expiré</ehr:message>
+        </ehr:DroitsExpiresFault>
+      </detail>
+    </soapenv:Fault>
+  </soapenv:Body>
+</soapenv:Envelope>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ehr="http://smarthealthcare.tn/ehr">
+  <soapenv:Body>
+    <soapenv:Fault>
+      <faultcode>soapenv:Client</faultcode>
+      <faultstring>Patient inconnu</faultstring>
+      <detail>
+        <ehr:PatientInconnuFault>
+          <ehr:patientId>PAT-9999</ehr:patientId>
+          <ehr:message>Aucun patient avec cet identifiant</ehr:message>
+        </ehr:PatientInconnuFault>
+      </detail>
+    </soapenv:Fault>
+  </soapenv:Body>
+</soapenv:Envelope>

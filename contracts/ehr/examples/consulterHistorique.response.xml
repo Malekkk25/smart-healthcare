@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ehr="http://smarthealthcare.tn/ehr">
+  <soapenv:Body>
+    <ehr:consulterHistoriqueResponse>
+      <ehr:acte>
+        <ehr:code>CS</ehr:code>
+        <ehr:date>2026-11-20</ehr:date>
+        <ehr:montant>35.000</ehr:montant>
+        <ehr:praticien>PRAT-042</ehr:praticien>
+      </ehr:acte>
+      <ehr:acte>
+        <ehr:code>K</ehr:code>
+        <ehr:date>2026-10-05</ehr:date>
+        <ehr:montant>120.000</ehr:montant>
+        <ehr:praticien>PRAT-017</ehr:praticien>
+      </ehr:acte>
+    </ehr:consulterHistoriqueResponse>
+  </soapenv:Body>
+</soapenv:Envelope>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ehr="http://smarthealthcare.tn/ehr">
+  <soapenv:Body>
+    <ehr:comparerGarantiesResponse>
+      <ehr:difference>
+        <ehr:garantie>Consultation spécialiste</ehr:garantie>
+        <ehr:valeurPriseEnChargeA>50%</ehr:valeurPriseEnChargeA>
+        <ehr:valeurPriseEnChargeB>80%</ehr:valeurPriseEnChargeB>
+      </ehr:difference>
+    </ehr:comparerGarantiesResponse>
+  </soapenv:Body>
+</soapenv:Envelope>

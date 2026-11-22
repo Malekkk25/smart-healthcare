@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ehr="http://smarthealthcare.tn/ehr">
+  <soapenv:Body>
+    <ehr:emettreFeuilleDeSoinsResponse>
+      <ehr:numeroFeuille>FS-2026-000123</ehr:numeroFeuille>
+      <ehr:montantRembourse>28.000</ehr:montantRembourse>
+      <ehr:statut>EMISE</ehr:statut>
+    </ehr:emettreFeuilleDeSoinsResponse>
+  </soapenv:Body>
+</soapenv:Envelope>

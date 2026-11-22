@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ehr="http://smarthealthcare.tn/ehr">
+  <soapenv:Body>
+    <ehr:consulterHistoriqueRequest>
+      <ehr:patientId>PAT-1001</ehr:patientId>
+    </ehr:consulterHistoriqueRequest>
+  </soapenv:Body>
+</soapenv:Envelope>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="EhrService"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://smarthealthcare.tn/ehr"
+    targetNamespace="http://smarthealthcare.tn/ehr">
+
+  <wsdl:documentation>Service Dossier patient et facturation assurance (SOAP 1.1, document/literal).</wsdl:documentation>
+
+  <wsdl:types>
+    <xs:schema targetNamespace="http://smarthealthcare.tn/ehr" elementFormDefault="qualified">
+      <xs:include schemaLocation="ehr.xsd"/>
+    </xs:schema>
+  </wsdl:types>
+
+  <!-- Messages -->
+  <wsdl:message name="verifierDroitsCNAMRequest"><wsdl:part name="parameters" element="tns:verifierDroitsCNAMRequest"/></wsdl:message>
+  <wsdl:message name="verifierDroitsCNAMResponse"><wsdl:part name="parameters" element="tns:verifierDroitsCNAMResponse"/></wsdl:message>
+  <wsdl:message name="emettreFeuilleDeSoinsRequest"><wsdl:part name="parameters" element="tns:emettreFeuilleDeSoinsRequest"/></wsdl:message>
+  <wsdl:message name="emettreFeuilleDeSoinsResponse"><wsdl:part name="parameters" element="tns:emettreFeuilleDeSoinsResponse"/></wsdl:message>
+  <wsdl:message name="consulterHistoriqueRequest"><wsdl:part name="parameters" element="tns:consulterHistoriqueRequest"/></wsdl:message>
+  <wsdl:message name="consulterHistoriqueResponse"><wsdl:part name="parameters" element="tns:consulterHistoriqueResponse"/></wsdl:message>
+  <wsdl:message name="comparerGarantiesRequest"><wsdl:part name="parameters" element="tns:comparerGarantiesRequest"/></wsdl:message>
+  <wsdl:message name="comparerGarantiesResponse"><wsdl:part name="parameters" element="tns:comparerGarantiesResponse"/></wsdl:message>
+  <wsdl:message name="PatientInconnuFault"><wsdl:part name="fault" element="tns:PatientInconnuFault"/></wsdl:message>
+  <wsdl:message name="DroitsExpiresFault"><wsdl:part name="fault" element="tns:DroitsExpiresFault"/></wsdl:message>
+
+  <!-- Port type -->
+  <wsdl:portType name="EhrPortType">
+    <wsdl:operation name="verifierDroitsCNAM">
+      <wsdl:input message="tns:verifierDroitsCNAMRequest"/>
+      <wsdl:output message="tns:verifierDroitsCNAMResponse"/>
+      <wsdl:fault name="PatientInconnuFault" message="tns:PatientInconnuFault"/>
+      <wsdl:fault name="DroitsExpiresFault" message="tns:DroitsExpiresFault"/>
+    </wsdl:operation>
+    <wsdl:operation name="emettreFeuilleDeSoins">
+      <wsdl:input message="tns:emettreFeuilleDeSoinsRequest"/>
+      <wsdl:output message="tns:emettreFeuilleDeSoinsResponse"/>
+      <wsdl:fault name="PatientInconnuFault" message="tns:PatientInconnuFault"/>
+      <wsdl:fault name="DroitsExpiresFault" message="tns:DroitsExpiresFault"/>
+    </wsdl:operation>
+    <wsdl:operation name="consulterHistorique">
+      <wsdl:input message="tns:consulterHistoriqueRequest"/>
+      <wsdl:output message="tns:consulterHistoriqueResponse"/>
+      <wsdl:fault name="PatientInconnuFault" message="tns:PatientInconnuFault"/>
+    </wsdl:operation>
+    <wsdl:operation name="comparerGaranties">
+      <wsdl:input message="tns:comparerGarantiesRequest"/>
+      <wsdl:output message="tns:comparerGarantiesResponse"/>
+      <wsdl:fault name="PatientInconnuFault" message="tns:PatientInconnuFault"/>
+      <wsdl:fault name="DroitsExpiresFault" message="tns:DroitsExpiresFault"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <!-- Binding SOAP 1.1 document/literal -->
+  <wsdl:binding name="EhrBinding" type="tns:EhrPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <wsdl:operation name="verifierDroitsCNAM">
+      <soap:operation soapAction="http://smarthealthcare.tn/ehr/verifierDroitsCNAM"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="PatientInconnuFault"><soap:fault name="PatientInconnuFault" use="literal"/></wsdl:fault>
+      <wsdl:fault name="DroitsExpiresFault"><soap:fault name="DroitsExpiresFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+
+    <wsdl:operation name="emettreFeuilleDeSoins">
+      <soap:operation soapAction="http://smarthealthcare.tn/ehr/emettreFeuilleDeSoins"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="PatientInconnuFault"><soap:fault name="PatientInconnuFault" use="literal"/></wsdl:fault>
+      <wsdl:fault name="DroitsExpiresFault"><soap:fault name="DroitsExpiresFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+
+    <wsdl:operation name="consulterHistorique">
+      <soap:operation soapAction="http://smarthealthcare.tn/ehr/consulterHistorique"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="PatientInconnuFault"><soap:fault name="PatientInconnuFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+
+    <wsdl:operation name="comparerGaranties">
+      <soap:operation soapAction="http://smarthealthcare.tn/ehr/comparerGaranties"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="PatientInconnuFault"><soap:fault name="PatientInconnuFault" use="literal"/></wsdl:fault>
+      <wsdl:fault name="DroitsExpiresFault"><soap:fault name="DroitsExpiresFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <!-- Service -->
+  <wsdl:service name="EhrService">
+    <wsdl:port name="EhrPort" binding="tns:EhrBinding">
+      <soap:address location="http://localhost:8081/ws/ehr"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>

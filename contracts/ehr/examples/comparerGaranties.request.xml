@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ehr="http://smarthealthcare.tn/ehr">
+  <soapenv:Body>
+    <ehr:comparerGarantiesRequest>
+      <ehr:patientId>PAT-1001</ehr:patientId>
+      <ehr:priseEnChargeIdA>PEC-2025-001</ehr:priseEnChargeIdA>
+      <ehr:priseEnChargeIdB>PEC-2026-007</ehr:priseEnChargeIdB>
+    </ehr:comparerGarantiesRequest>
+  </soapenv:Body>
+</soapenv:Envelope>

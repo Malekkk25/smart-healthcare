@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ehr="http://smarthealthcare.tn/ehr">
+  <soapenv:Body>
+    <ehr:emettreFeuilleDeSoinsRequest>
+      <ehr:patientId>PAT-1001</ehr:patientId>
+      <ehr:codeActe>CS</ehr:codeActe>
+      <ehr:dateActe>2026-11-20</ehr:dateActe>
+      <ehr:montant>35.000</ehr:montant>
+      <ehr:praticienId>PRAT-042</ehr:praticienId>
+    </ehr:emettreFeuilleDeSoinsRequest>
+  </soapenv:Body>
+</soapenv:Envelope>

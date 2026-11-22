@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://smarthealthcare.tn/ehr"
+           targetNamespace="http://smarthealthcare.tn/ehr"
+           elementFormDefault="qualified">
+
+  <!-- ===== Types simples ===== -->
+  <xs:simpleType name="PatientIdType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z0-9\-]{3,20}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="PraticienIdType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z0-9\-]{3,20}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Lettre-clé fictive (C, CS, K, ...) -->
+  <xs:simpleType name="CodeActeType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Z]{1,4}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TauxRemboursementType">
+    <xs:restriction base="xs:int">
+      <xs:enumeration value="80"/>
+      <xs:enumeration value="50"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="MontantType">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0"/>
+      <xs:fractionDigits value="3"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="StatutFeuilleType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="EMISE"/>
+      <xs:enumeration value="EN_ATTENTE"/>
+      <xs:enumeration value="REJETEE"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- ===== Types complexes ===== -->
+  <xs:complexType name="ActeCertifieType">
+    <xs:sequence>
+      <xs:element name="code" type="tns:CodeActeType"/>
+      <xs:element name="date" type="xs:date"/>
+      <xs:element name="montant" type="tns:MontantType"/>
+      <xs:element name="praticien" type="tns:PraticienIdType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="DifferenceGarantieType">
+    <xs:sequence>
+      <xs:element name="garantie" type="xs:string"/>
+      <xs:element name="valeurPriseEnChargeA" type="xs:string"/>
+      <xs:element name="valeurPriseEnChargeB" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- ===== 1. verifierDroitsCNAM ===== -->
+  <xs:element name="verifierDroitsCNAMRequest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="patientId" type="tns:PatientIdType"/>
+        <xs:element name="codeActe" type="tns:CodeActeType"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="verifierDroitsCNAMResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="droitsOuverts" type="xs:boolean"/>
+        <xs:element name="tauxRemboursement" type="tns:TauxRemboursementType"/>
+        <xs:element name="motif" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ===== 2. emettreFeuilleDeSoins ===== -->
+  <xs:element name="emettreFeuilleDeSoinsRequest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="patientId" type="tns:PatientIdType"/>
+        <xs:element name="codeActe" type="tns:CodeActeType"/>
+        <xs:element name="dateActe" type="xs:date"/>
+        <xs:element name="montant" type="tns:MontantType"/>
+        <xs:element name="praticienId" type="tns:PraticienIdType"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="emettreFeuilleDeSoinsResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="numeroFeuille" type="xs:string"/>
+        <xs:element name="montantRembourse" type="tns:MontantType"/>
+        <xs:element name="statut" type="tns:StatutFeuilleType"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ===== 3. consulterHistorique ===== -->
+  <xs:element name="consulterHistoriqueRequest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="patientId" type="tns:PatientIdType"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="consulterHistoriqueResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="acte" type="tns:ActeCertifieType" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ===== 4. comparerGaranties ===== -->
+  <xs:element name="comparerGarantiesRequest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="patientId" type="tns:PatientIdType"/>
+        <xs:element name="priseEnChargeIdA" type="xs:string"/>
+        <xs:element name="priseEnChargeIdB" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="comparerGarantiesResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="difference" type="tns:DifferenceGarantieType" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ===== Détails des SOAP Faults ===== -->
+  <xs:element name="PatientInconnuFault">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="patientId" type="xs:string"/>
+        <xs:element name="message" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="DroitsExpiresFault">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="patientId" type="xs:string"/>
+        <xs:element name="dateExpiration" type="xs:date"/>
+        <xs:element name="message" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>
