@@ -1,0 +1,77 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      # CORS : voir CorsConfig.java (filtre global, couvre aussi /api/auth/login)
+      # Routes (documentées dans services/gateway/README.md). Ordre = priorité.
+      routes:
+        # Portail patient REST : /api/portal/slots -> rest-portal /slots
+        - id: portal
+          uri: ${PORTAL_URL:http://rest-portal:8082}
+          predicates:
+            - Path=/api/portal/**
+          filters:
+            - StripPrefix=2
+
+        # Service SOAP : simple relais /api/ehr -> soap-ehr /ws/ehr (WSDL : /api/ehr?wsdl)
+        - id: ehr
+          uri: ${EHR_URL:http://soap-ehr:8081}
+          predicates:
+            - Path=/api/ehr/**,/api/ehr
+          filters:
+            - RewritePath=/api/ehr(?<segment>/?.*), /ws/ehr$\{segment}
+
+        # GraphQL (B) - abonnements WebSocket
+        - id: dashboard-ws
+          uri: ${DASHBOARD_WS_URL:ws://graphql-dashboard:8083}
+          predicates:
+            - Path=/api/dashboard/**
+            - Header=Upgrade, (?i)websocket
+          filters:
+            - RewritePath=/api/dashboard(?<segment>/?.*), $\{segment}
+
+        # GraphQL (B) - requêtes HTTP : /api/dashboard/graphql -> /graphql
+        - id: dashboard
+          uri: ${DASHBOARD_URL:http://graphql-dashboard:8083}
+          predicates:
+            - Path=/api/dashboard/**
+          filters:
+            - RewritePath=/api/dashboard(?<segment>/?.*), $\{segment}
+
+        # Orchestrateur (B) : /api/orchestrator/workflows/{id} et flux SSE
+        - id: orchestrator
+          uri: ${ORCHESTRATOR_URL:http://orchestrator:8085}
+          predicates:
+            - Path=/api/orchestrator/**
+          filters:
+            - StripPrefix=2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+app:
+  cors-origins: ${CORS_ORIGINS:http://localhost:3000}
+  demo-password: ${DEMO_PASSWORD:change-me-demo}
+  jwt:
+    # Valeur de développement uniquement : en Docker, JWT_SECRET vient du fichier .env
+    secret: ${JWT_SECRET:dev-only-secret-change-me-at-least-32-bytes!}
+    ttl-seconds: 28800
+  rate-limit:
+    requests-per-minute: ${RATE_LIMIT_PER_MINUTE:600}
+    login-per-minute: ${RATE_LIMIT_LOGIN_PER_MINUTE:30}
+  users:
+    - { username: patient1, role: PATIENT, patient-id: PAT-000002 }
+    - { username: patient2, role: PATIENT, patient-id: PAT-000004 }
+    - { username: medecin, role: MEDECIN }
+    - { username: admin, role: ADMIN }
+
+logging:
+  level:
+    audit: INFO
