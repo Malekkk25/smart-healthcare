@@ -1,0 +1,4 @@
+CREATE DATABASE ehr_db;
+CREATE DATABASE portal_db;
+CREATE DATABASE telemetry_db;
+CREATE DATABASE workflow_db;
