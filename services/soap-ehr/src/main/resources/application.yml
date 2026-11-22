@@ -1,0 +1,22 @@
+server:
+  port: 8081
+
+cxf:
+  path: /ws
+
+spring:
+  application:
+    name: soap-ehr
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ehr_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data-patients.sql,classpath:data.sql
+
+logging:
+  pattern:
+    level: "%5p [%X{correlationId:-}]"

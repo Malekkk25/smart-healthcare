@@ -1,0 +1,21 @@
+-- Généré par contracts/seed/generate_sql.py : ne pas modifier à la main
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000001', 'Gharbi', 'Ahmed', '3342331444', 50, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000002', 'Gharbi', 'Ahmed', '7635473142', 80, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000003', 'Ben Salah', 'Hela', '2193448329', 80, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000004', 'Bouzid', 'Sarra', '9776552803', 50, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000005', 'Mansouri', 'Karim', '1298737106', 80, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000006', 'Trabelsi', 'Sarra', '6884882440', 80, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000007', 'Jlassi', 'Nour', '6924716023', 80, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000008', 'Ben Salah', 'Sarra', '2351531223', 50, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000009', 'Jlassi', 'Nour', '7805745017', 50, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000010', 'Hamdi', 'Ines', '3694860228', 50, '2026-06-30') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000011', 'Hamdi', 'Karim', '4095476665', 50, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000012', 'Bouzid', 'Sarra', '4272602734', 80, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000013', 'Jlassi', 'Nour', '6687206971', 80, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000014', 'Gharbi', 'Youssef', '8438486479', 80, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000015', 'Jlassi', 'Mohamed', '3962958940', 50, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000016', 'Hamdi', 'Nour', '1965067727', 50, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000017', 'Gharbi', 'Walid', '2419179580', 80, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000018', 'Gharbi', 'Nour', '8664882079', 50, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000019', 'Bouzid', 'Ahmed', '9822598054', 80, '2027-12-31') ON CONFLICT (id) DO NOTHING;
+INSERT INTO patient (id, nom, prenom, numero_assure, taux_remboursement, date_fin_droits) VALUES ('PAT-000020', 'Trabelsi', 'Karim', '2811967841', 50, '2026-06-30') ON CONFLICT (id) DO NOTHING;
