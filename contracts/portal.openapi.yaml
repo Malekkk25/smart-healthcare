@@ -44,7 +44,7 @@ paths:
           description: Identifiant du médecin.
           schema:
             type: string
-          example: DOC-007
+          example: DOC-001
         - name: date
           in: query
           description: Date recherchée (AAAA-MM-JJ).
@@ -65,13 +65,13 @@ paths:
                 items:
                   $ref: '#/components/schemas/Creneau'
               example:
-                - id: SLOT-20261125-0900
-                  doctorId: DOC-007
+                - id: SLOT-20261125-0900-DOC-001
+                  doctorId: DOC-001
                   debut: '2026-11-25T09:00:00Z'
                   fin: '2026-11-25T09:30:00Z'
                   urgence: false
-                - id: SLOT-20261125-0930
-                  doctorId: DOC-007
+                - id: SLOT-20261125-0930-DOC-001
+                  doctorId: DOC-001
                   debut: '2026-11-25T09:30:00Z'
                   fin: '2026-11-25T10:00:00Z'
                   urgence: false
@@ -81,6 +81,45 @@ paths:
           $ref: '#/components/responses/NonAuthentifie'
 
   /appointments:
+    get:
+      tags: [Rendez-vous]
+      operationId: listerRendezVous
+      summary: Lister les rendez-vous d'un patient
+      description: Retourne les rendez-vous d'un patient, du plus proche au plus lointain.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: patientId
+          in: query
+          required: true
+          description: Identifiant du patient.
+          schema:
+            type: string
+            pattern: '^PAT-[0-9]{6}$'
+          example: PAT-000002
+      responses:
+        '200':
+          description: Liste des rendez-vous.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RendezVous'
+              example:
+                - id: APT-2026-000451
+                  patientId: PAT-000002
+                  slotId: SLOT-20261125-0900-DOC-001
+                  doctorId: DOC-001
+                  debut: '2026-11-25T09:00:00Z'
+                  motif: Suivi insuffisance cardiaque
+                  statut: CONFIRME
+        '400':
+          $ref: '#/components/responses/RequeteInvalide'
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
     post:
       tags: [Rendez-vous]
       operationId: creerRendezVous
@@ -96,7 +135,7 @@ paths:
               $ref: '#/components/schemas/RendezVousCreation'
             example:
               patientId: PAT-000002
-              slotId: SLOT-20261125-0900
+              slotId: SLOT-20261125-0900-DOC-001
               motif: Suivi insuffisance cardiaque
       responses:
         '201':
@@ -115,8 +154,8 @@ paths:
               example:
                 id: APT-2026-000451
                 patientId: PAT-000002
-                slotId: SLOT-20261125-0900
-                doctorId: DOC-007
+                slotId: SLOT-20261125-0900-DOC-001
+                doctorId: DOC-001
                 debut: '2026-11-25T09:00:00Z'
                 motif: Suivi insuffisance cardiaque
                 statut: CONFIRME
@@ -151,8 +190,8 @@ paths:
               example:
                 id: APT-2026-000451
                 patientId: PAT-000002
-                slotId: SLOT-20261125-0900
-                doctorId: DOC-007
+                slotId: SLOT-20261125-0900-DOC-001
+                doctorId: DOC-001
                 debut: '2026-11-25T09:00:00Z'
                 motif: Suivi insuffisance cardiaque
                 statut: CONFIRME
@@ -172,7 +211,7 @@ paths:
             schema:
               $ref: '#/components/schemas/RendezVousModification'
             example:
-              slotId: SLOT-20261125-0930
+              slotId: SLOT-20261125-0930-DOC-001
               motif: Suivi insuffisance cardiaque (report)
       responses:
         '200':
@@ -187,8 +226,8 @@ paths:
               example:
                 id: APT-2026-000451
                 patientId: PAT-000002
-                slotId: SLOT-20261125-0930
-                doctorId: DOC-007
+                slotId: SLOT-20261125-0930-DOC-001
+                doctorId: DOC-001
                 debut: '2026-11-25T09:30:00Z'
                 motif: Suivi insuffisance cardiaque (report)
                 statut: CONFIRME
@@ -215,6 +254,63 @@ paths:
           $ref: '#/components/responses/NonAuthentifie'
         '404':
           $ref: '#/components/responses/NonTrouve'
+
+  /patients:
+    get:
+      tags: [Patients]
+      operationId: listerPatients
+      summary: Lister les patients
+      description: |
+        Retourne les patients, avec filtres facultatifs combinables. Utilisé par le tableau
+        de bord médecin et par le service GraphQL.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: service
+          in: query
+          description: Service hospitalier (cardiologie, pneumologie, geriatrie, medecine generale).
+          schema:
+            type: string
+          example: cardiologie
+        - name: pathologie
+          in: query
+          description: Pathologie suivie.
+          schema:
+            type: string
+          example: Arythmie
+        - name: niveauRisque
+          in: query
+          description: Niveau de risque.
+          schema:
+            type: string
+            enum: [FAIBLE, MOYEN, ELEVE]
+          example: ELEVE
+      responses:
+        '200':
+          description: Liste des patients correspondant aux filtres.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Patient'
+              example:
+                - id: PAT-000004
+                  nom: Bouzid
+                  prenom: Sarra
+                  sexe: F
+                  dateNaissance: '1946-06-28'
+                  service: cardiologie
+                  pathologie: Arythmie
+                  niveauRisque: ELEVE
+                  numeroAssure: '9776552803'
+                  tauxRemboursement: 50
+        '400':
+          $ref: '#/components/responses/RequeteInvalide'
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
 
   /patients/{id}:
     parameters:
@@ -320,7 +416,7 @@ paths:
               example:
                 - id: ORD-2026-001230
                   patientId: PAT-000002
-                  doctorId: DOC-007
+                  doctorId: DOC-001
                   date: '2026-10-12'
                   medicaments:
                     - nom: Furosémide 40 mg
@@ -377,6 +473,9 @@ paths:
         Affecte l'ambulance la plus adaptée à une alerte. Si aucune ambulance n'est
         disponible, le système bascule sur un créneau d'urgence : l'identifiant du
         rendez-vous créé est alors renvoyé dans `fallbackAppointmentId`.
+
+        **Idempotence** : un second appel avec le même `alertId` ne crée pas de nouvel envoi,
+        il renvoie le résultat du premier (l'orchestrateur peut donc réessayer sans risque).
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
       requestBody:
@@ -521,7 +620,7 @@ components:
             $ref: '#/components/schemas/Erreur'
           example:
             code: CRENEAU_INDISPONIBLE
-            message: Le créneau SLOT-20261125-0900 est déjà réservé.
+            message: Le créneau SLOT-20261125-0900-DOC-001 est déjà réservé.
             correlationId: 3f6c1d5e-8a47-4b8e-9c0a-2d7f4a1b9e63
 
   schemas:
