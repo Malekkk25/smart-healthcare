@@ -1,0 +1,755 @@
+openapi: 3.0.3
+info:
+  title: API Portail Patient - Smart Healthcare
+  version: 1.0.0
+  description: |
+    API REST du portail patient : créneaux et rendez-vous, dossier patient,
+    ordonnances, ambulances et déclenchement d'urgence.
+
+    **Conventions**
+    - Toutes les requêtes acceptent l'en-tête `X-Correlation-Id` (UUID). S'il est absent,
+      le serveur en génère un. Il est renvoyé dans chaque réponse.
+    - Authentification par jeton JWT : `Authorization: Bearer <jwt>`.
+    - Toutes les erreurs suivent le schéma commun `Erreur` (code, message, correlationId).
+  contact:
+    name: Équipe Smart Healthcare
+    email: contact@smarthealthcare.tn
+servers:
+  - url: http://localhost:8082
+    description: Service rest-portal (local)
+  - url: http://localhost:8080/api/portal
+    description: Via la gateway (local)
+tags:
+  - name: Créneaux
+    description: Disponibilités des médecins
+  - name: Rendez-vous
+    description: Gestion des rendez-vous
+  - name: Patients
+    description: Dossier patient et ordonnances
+  - name: Urgences
+    description: Ambulances et envoi en urgence
+security:
+  - bearerAuth: []
+paths:
+  /slots:
+    get:
+      tags: [Créneaux]
+      operationId: listerCreneaux
+      summary: Lister les créneaux disponibles
+      description: Retourne les créneaux libres, filtrables par médecin et par date.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: doctorId
+          in: query
+          description: Identifiant du médecin.
+          schema:
+            type: string
+          example: DOC-007
+        - name: date
+          in: query
+          description: Date recherchée (AAAA-MM-JJ).
+          schema:
+            type: string
+            format: date
+          example: '2026-11-25'
+      responses:
+        '200':
+          description: Liste des créneaux.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Creneau'
+              example:
+                - id: SLOT-20261125-0900
+                  doctorId: DOC-007
+                  debut: '2026-11-25T09:00:00Z'
+                  fin: '2026-11-25T09:30:00Z'
+                  urgence: false
+                - id: SLOT-20261125-0930
+                  doctorId: DOC-007
+                  debut: '2026-11-25T09:30:00Z'
+                  fin: '2026-11-25T10:00:00Z'
+                  urgence: false
+        '400':
+          $ref: '#/components/responses/RequeteInvalide'
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+
+  /appointments:
+    post:
+      tags: [Rendez-vous]
+      operationId: creerRendezVous
+      summary: Créer un rendez-vous
+      description: Réserve un créneau pour un patient.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RendezVousCreation'
+            example:
+              patientId: PAT-000002
+              slotId: SLOT-20261125-0900
+              motif: Suivi insuffisance cardiaque
+      responses:
+        '201':
+          description: Rendez-vous créé.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            Location:
+              description: URL du rendez-vous créé.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RendezVous'
+              example:
+                id: APT-2026-000451
+                patientId: PAT-000002
+                slotId: SLOT-20261125-0900
+                doctorId: DOC-007
+                debut: '2026-11-25T09:00:00Z'
+                motif: Suivi insuffisance cardiaque
+                statut: CONFIRME
+        '400':
+          $ref: '#/components/responses/RequeteInvalide'
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+        '409':
+          $ref: '#/components/responses/Conflit'
+
+  /appointments/{id}:
+    parameters:
+      - $ref: '#/components/parameters/AppointmentId'
+      - $ref: '#/components/parameters/CorrelationId'
+    get:
+      tags: [Rendez-vous]
+      operationId: consulterRendezVous
+      summary: Consulter un rendez-vous
+      description: Retourne le détail d'un rendez-vous à partir de son identifiant.
+      responses:
+        '200':
+          description: Le rendez-vous demandé.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RendezVous'
+              example:
+                id: APT-2026-000451
+                patientId: PAT-000002
+                slotId: SLOT-20261125-0900
+                doctorId: DOC-007
+                debut: '2026-11-25T09:00:00Z'
+                motif: Suivi insuffisance cardiaque
+                statut: CONFIRME
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+    put:
+      tags: [Rendez-vous]
+      operationId: modifierRendezVous
+      summary: Modifier un rendez-vous
+      description: Change le créneau ou le motif d'un rendez-vous existant.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RendezVousModification'
+            example:
+              slotId: SLOT-20261125-0930
+              motif: Suivi insuffisance cardiaque (report)
+      responses:
+        '200':
+          description: Rendez-vous modifié.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RendezVous'
+              example:
+                id: APT-2026-000451
+                patientId: PAT-000002
+                slotId: SLOT-20261125-0930
+                doctorId: DOC-007
+                debut: '2026-11-25T09:30:00Z'
+                motif: Suivi insuffisance cardiaque (report)
+                statut: CONFIRME
+        '400':
+          $ref: '#/components/responses/RequeteInvalide'
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+        '409':
+          $ref: '#/components/responses/Conflit'
+    delete:
+      tags: [Rendez-vous]
+      operationId: annulerRendezVous
+      summary: Annuler un rendez-vous
+      description: Annule le rendez-vous et libère le créneau.
+      responses:
+        '204':
+          description: Rendez-vous annulé.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+
+  /patients/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PatientId'
+      - $ref: '#/components/parameters/CorrelationId'
+    get:
+      tags: [Patients]
+      operationId: consulterPatient
+      summary: Consulter un patient
+      description: Retourne la fiche d'un patient à partir de son identifiant.
+      responses:
+        '200':
+          description: Fiche du patient.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+              example:
+                id: PAT-000004
+                nom: Bouzid
+                prenom: Sarra
+                sexe: F
+                dateNaissance: '1946-06-28'
+                service: cardiologie
+                pathologie: Arythmie
+                niveauRisque: ELEVE
+                numeroAssure: '9776552803'
+                tauxRemboursement: 50
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+    put:
+      tags: [Patients]
+      operationId: modifierPatient
+      summary: Modifier un patient
+      description: Remplace la fiche du patient (l'identifiant ne change pas).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientModification'
+            example:
+              nom: Ben Salah
+              prenom: Hela
+              sexe: F
+              dateNaissance: '1988-03-23'
+              service: geriatrie
+              pathologie: Chute à répétition
+      responses:
+        '200':
+          description: Patient modifié.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+              example:
+                id: PAT-000003
+                nom: Ben Salah
+                prenom: Hela
+                sexe: F
+                dateNaissance: '1988-03-23'
+                service: geriatrie
+                pathologie: Chute à répétition
+                niveauRisque: MOYEN
+                numeroAssure: '2193448329'
+                tauxRemboursement: 80
+        '400':
+          $ref: '#/components/responses/RequeteInvalide'
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+
+  /patients/{id}/prescriptions:
+    get:
+      tags: [Patients]
+      operationId: listerOrdonnances
+      summary: Lister les ordonnances d'un patient
+      description: Retourne les ordonnances émises pour le patient, de la plus récente à la plus ancienne.
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Ordonnances du patient.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ordonnance'
+              example:
+                - id: ORD-2026-001230
+                  patientId: PAT-000002
+                  doctorId: DOC-007
+                  date: '2026-10-12'
+                  medicaments:
+                    - nom: Furosémide 40 mg
+                      posologie: 1 comprimé le matin
+                      dureeJours: 30
+                    - nom: Bisoprolol 5 mg
+                      posologie: 1 comprimé par jour
+                      dureeJours: 90
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+
+  /ambulances:
+    get:
+      tags: [Urgences]
+      operationId: listerAmbulances
+      summary: Lister les ambulances
+      description: Retourne les ambulances avec leur disponibilité et leur position.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Liste des ambulances.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ambulance'
+              example:
+                - id: AMB-03
+                  statut: DISPONIBLE
+                  position:
+                    latitude: 36.8065
+                    longitude: 10.1815
+                - id: AMB-05
+                  statut: EN_INTERVENTION
+                  position:
+                    latitude: 36.8190
+                    longitude: 10.1658
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+
+  /emergency/dispatch:
+    post:
+      tags: [Urgences]
+      operationId: declencherUrgence
+      summary: Déclencher l'envoi d'une ambulance
+      description: |
+        Affecte l'ambulance la plus adaptée à une alerte. Si aucune ambulance n'est
+        disponible, le système bascule sur un créneau d'urgence : l'identifiant du
+        rendez-vous créé est alors renvoyé dans `fallbackAppointmentId`.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UrgenceDemande'
+            example:
+              patientId: PAT-000004
+              alertId: ALT-2026-004512
+              severity: CRITIQUE
+              location:
+                latitude: 36.8065
+                longitude: 10.1815
+                adresse: 12 rue de Marseille, Tunis
+      responses:
+        '201':
+          description: Urgence prise en charge.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrgenceReponse'
+              examples:
+                ambulanceAffectee:
+                  summary: Ambulance affectée
+                  value:
+                    dispatchId: DSP-2026-000087
+                    ambulanceId: AMB-03
+                    etaMinutes: 7
+                basculeCreneauUrgence:
+                  summary: Aucune ambulance, bascule sur un créneau d'urgence
+                  value:
+                    dispatchId: DSP-2026-000088
+                    ambulanceId: null
+                    etaMinutes: null
+                    fallbackAppointmentId: APT-2026-000452
+        '400':
+          $ref: '#/components/responses/RequeteInvalide'
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+        '409':
+          $ref: '#/components/responses/Conflit'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Jeton JWT obtenu auprès du service d'authentification.
+
+  headers:
+    CorrelationId:
+      description: Identifiant de corrélation de la requête (repris ou généré par le serveur).
+      schema:
+        type: string
+        format: uuid
+      example: 3f6c1d5e-8a47-4b8e-9c0a-2d7f4a1b9e63
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: Identifiant de corrélation. Généré par le serveur s'il est absent.
+      schema:
+        type: string
+        format: uuid
+      example: 3f6c1d5e-8a47-4b8e-9c0a-2d7f4a1b9e63
+    PatientId:
+      name: id
+      in: path
+      required: true
+      description: Identifiant du patient.
+      schema:
+        type: string
+        pattern: '^PAT-[0-9]{6}$'
+      example: PAT-000004
+    AppointmentId:
+      name: id
+      in: path
+      required: true
+      description: Identifiant du rendez-vous.
+      schema:
+        type: string
+      example: APT-2026-000451
+
+  responses:
+    RequeteInvalide:
+      description: Requête invalide.
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erreur'
+          example:
+            code: REQUETE_INVALIDE
+            message: Le champ 'patientId' est obligatoire.
+            correlationId: 3f6c1d5e-8a47-4b8e-9c0a-2d7f4a1b9e63
+    NonAuthentifie:
+      description: Jeton JWT absent, invalide ou expiré.
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erreur'
+          example:
+            code: NON_AUTHENTIFIE
+            message: Jeton JWT absent ou expiré.
+            correlationId: 3f6c1d5e-8a47-4b8e-9c0a-2d7f4a1b9e63
+    NonTrouve:
+      description: Ressource introuvable.
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erreur'
+          example:
+            code: RESSOURCE_INTROUVABLE
+            message: Aucun patient avec l'identifiant PAT-999999.
+            correlationId: 3f6c1d5e-8a47-4b8e-9c0a-2d7f4a1b9e63
+    Conflit:
+      description: Conflit avec l'état actuel (par exemple créneau déjà réservé).
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erreur'
+          example:
+            code: CRENEAU_INDISPONIBLE
+            message: Le créneau SLOT-20261125-0900 est déjà réservé.
+            correlationId: 3f6c1d5e-8a47-4b8e-9c0a-2d7f4a1b9e63
+
+  schemas:
+    Erreur:
+      type: object
+      description: Schéma d'erreur commun à toutes les routes.
+      required: [code, message, correlationId]
+      properties:
+        code:
+          type: string
+          description: Code d'erreur applicatif.
+          example: REQUETE_INVALIDE
+        message:
+          type: string
+          description: Message lisible décrivant l'erreur.
+        correlationId:
+          type: string
+          format: uuid
+          description: Identifiant de corrélation de la requête en erreur.
+
+    Creneau:
+      type: object
+      required: [id, doctorId, debut, fin, urgence]
+      properties:
+        id:
+          type: string
+          description: Identifiant du créneau.
+        doctorId:
+          type: string
+          description: Identifiant du médecin.
+        debut:
+          type: string
+          format: date-time
+        fin:
+          type: string
+          format: date-time
+        urgence:
+          type: boolean
+          description: Vrai si le créneau est réservé aux urgences.
+
+    RendezVousCreation:
+      type: object
+      required: [patientId, slotId]
+      properties:
+        patientId:
+          type: string
+          pattern: '^PAT-[0-9]{6}$'
+        slotId:
+          type: string
+        motif:
+          type: string
+          description: Motif de la consultation.
+
+    RendezVousModification:
+      type: object
+      properties:
+        slotId:
+          type: string
+          description: Nouveau créneau.
+        motif:
+          type: string
+
+    RendezVous:
+      type: object
+      required: [id, patientId, slotId, doctorId, debut, statut]
+      properties:
+        id:
+          type: string
+        patientId:
+          type: string
+        slotId:
+          type: string
+        doctorId:
+          type: string
+        debut:
+          type: string
+          format: date-time
+        motif:
+          type: string
+        statut:
+          type: string
+          enum: [CONFIRME, ANNULE, TERMINE]
+
+    Patient:
+      type: object
+      required: [id, nom, prenom, sexe, dateNaissance]
+      properties:
+        id:
+          type: string
+          pattern: '^PAT-[0-9]{6}$'
+        nom:
+          type: string
+        prenom:
+          type: string
+        sexe:
+          type: string
+          enum: [M, F]
+        dateNaissance:
+          type: string
+          format: date
+        service:
+          type: string
+          example: cardiologie
+        pathologie:
+          type: string
+        niveauRisque:
+          type: string
+          enum: [FAIBLE, MOYEN, ELEVE]
+        numeroAssure:
+          type: string
+          description: Numéro d'assuré.
+        tauxRemboursement:
+          type: integer
+          enum: [50, 80]
+          description: Taux de remboursement en pourcentage.
+
+    PatientModification:
+      type: object
+      required: [nom, prenom, sexe, dateNaissance]
+      properties:
+        nom:
+          type: string
+        prenom:
+          type: string
+        sexe:
+          type: string
+          enum: [M, F]
+        dateNaissance:
+          type: string
+          format: date
+        service:
+          type: string
+        pathologie:
+          type: string
+
+    Ordonnance:
+      type: object
+      required: [id, patientId, doctorId, date, medicaments]
+      properties:
+        id:
+          type: string
+        patientId:
+          type: string
+        doctorId:
+          type: string
+        date:
+          type: string
+          format: date
+        medicaments:
+          type: array
+          items:
+            type: object
+            required: [nom, posologie]
+            properties:
+              nom:
+                type: string
+              posologie:
+                type: string
+              dureeJours:
+                type: integer
+                minimum: 1
+
+    Position:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+
+    Ambulance:
+      type: object
+      required: [id, statut, position]
+      properties:
+        id:
+          type: string
+        statut:
+          type: string
+          enum: [DISPONIBLE, EN_INTERVENTION, HORS_SERVICE]
+        position:
+          $ref: '#/components/schemas/Position'
+
+    UrgenceDemande:
+      type: object
+      required: [patientId, alertId, severity, location]
+      properties:
+        patientId:
+          type: string
+          pattern: '^PAT-[0-9]{6}$'
+        alertId:
+          type: string
+          description: Identifiant de l'alerte à l'origine de l'urgence.
+        severity:
+          type: string
+          enum: [FAIBLE, MOYENNE, ELEVEE, CRITIQUE]
+          description: Gravité de l'urgence.
+        location:
+          allOf:
+            - $ref: '#/components/schemas/Position'
+            - type: object
+              properties:
+                adresse:
+                  type: string
+                  description: Adresse en clair (facultative).
+
+    UrgenceReponse:
+      type: object
+      required: [dispatchId]
+      properties:
+        dispatchId:
+          type: string
+          description: Identifiant de l'envoi.
+        ambulanceId:
+          type: string
+          nullable: true
+          description: Ambulance affectée, absente en cas de bascule sur un créneau d'urgence.
+        etaMinutes:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: Temps d'arrivée estimé en minutes.
+        fallbackAppointmentId:
+          type: string
+          description: Rendez-vous d'urgence créé si aucune ambulance n'est disponible.
