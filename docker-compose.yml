@@ -45,6 +45,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/portal_db
       DB_USER: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
+      VISIO_SALT: ${VISIO_SALT:-smart-healthcare-dev}
     ports:
       - "8082:8082"
     depends_on:
@@ -83,6 +84,66 @@ services:
   # À ajouter par B : grpc-telemetry (9090), graphql-dashboard (8083), orchestrator (8085), ai-triage (8086).
   # Variables attendues par la gateway : DASHBOARD_URL, DASHBOARD_WS_URL, ORCHESTRATOR_URL
   # (par défaut http://graphql-dashboard:8083, ws://graphql-dashboard:8083, http://orchestrator:8085).
+  #
+  # En attendant les vrais services : stubs de A (tools/b-stubs), profil "stubs".
+  #   docker compose --profile stubs up -d --build
+  # Quand B ajoute ses vrais services, elle supprime les deux entrées ci-dessous (mêmes noms, mêmes ports).
+
+  graphql-dashboard:
+    profiles: ["stubs"]
+    build:
+      context: .
+      dockerfile: tools/b-stubs/Dockerfile
+    command: ["node", "server.js", "graphql"]
+    container_name: smart-healthcare-graphql-stub
+    restart: unless-stopped
+    environment:
+      REST_URL: http://rest-portal:8082
+    ports:
+      - "8083:8083"
+    depends_on:
+      - rest-portal
+
+  orchestrator:
+    profiles: ["stubs"]
+    build:
+      context: .
+      dockerfile: tools/b-stubs/Dockerfile
+    command: ["node", "server.js", "orchestrator"]
+    container_name: smart-healthcare-orchestrator-stub
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+
+  # ---------------------------------------------------------------- Observabilité (profil "observability")
+  #   docker compose --profile observability up -d   ->  Grafana : http://localhost:3001  (admin / GRAFANA_PASSWORD)
+
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:v2.55.1
+    container_name: smart-healthcare-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:9091:9090"   # 9090 est réservé au gRPC de B
+
+  grafana:
+    profiles: ["observability"]
+    image: grafana/grafana:11.3.1
+    container_name: smart-healthcare-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      - prometheus
 
 volumes:
   postgres_data:

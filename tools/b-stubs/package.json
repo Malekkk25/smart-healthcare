@@ -1,0 +1,15 @@
+{
+  "name": "smart-healthcare-b-stubs",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Stubs des services de B (GraphQL et orchestrateur) pour développer le client web avant leur livraison",
+  "scripts": {
+    "graphql": "node server.js graphql",
+    "orchestrator": "node server.js orchestrator"
+  },
+  "dependencies": {
+    "graphql": "16.9.0",
+    "graphql-ws": "5.16.0",
+    "ws": "8.18.0"
+  }
+}
