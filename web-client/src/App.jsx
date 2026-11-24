@@ -22,6 +22,7 @@ const NAV = {
   MEDECIN: [
     ['/patients', 'Patients'],
     ['/alertes', 'Alertes en direct'],
+    ['/interventions', 'Interventions'],
     ['/droits', 'Droits CNAM'],
   ],
   ADMIN: [
@@ -81,7 +82,7 @@ export default function App() {
         <Route path="/alertes" element={<Protected roles={['MEDECIN']}><Alertes /></Protected>} />
         <Route path="/ambulances" element={<Protected roles={['ADMIN']}><Ambulances /></Protected>} />
         <Route path="/creneaux" element={<Protected roles={['ADMIN']}><Creneaux /></Protected>} />
-        <Route path="/interventions" element={<Protected roles={['ADMIN']}><Interventions /></Protected>} />
+        <Route path="/interventions" element={<Protected roles={staff}><Interventions /></Protected>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

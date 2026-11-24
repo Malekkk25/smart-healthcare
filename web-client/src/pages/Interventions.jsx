@@ -63,6 +63,12 @@ export default function Interventions() {
               </div>
             ))}
           </div>
+          {w.dossier?.triage && (
+            <p>
+              <Badge value={w.dossier.triage.riskLevel} /> <strong>Risque {w.dossier.triage.riskScore}/100</strong>
+              {' '}· {w.dossier.triage.summary} <span className="muted small">(résumé : {w.dossier.triage.source})</span>
+            </p>
+          )}
           {w.adminAlert && <p className="alert alert-error">{w.adminAlert}</p>}
           <p className="muted small">Corrélation {w.correlationId}</p>
         </section>

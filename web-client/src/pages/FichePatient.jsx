@@ -33,6 +33,9 @@ export default function FichePatient() {
   const { id } = useParams();
   const patient = useFetch(() => api(`/api/portal/patients/${id}`), [id]);
   const fiche = useFetch(() => graphql(FICHE, { id }), [id]);
+  // Dernière intervention d'urgence (orchestrateur) : étapes et résumé de la fiche ; absente si le service est arrêté
+  const intervention = useFetch(() => api(`/api/orchestrator/workflows?patientId=${id}&limit=1`).catch(() => []), [id]);
+  const derniere = intervention.data?.[0];
   // Repli : si le GraphQL est indisponible, les ordonnances viennent directement du REST
   const ordonnancesRest = useFetch(() => (fiche.error ? api(`/api/portal/patients/${id}/prescriptions`) : Promise.resolve(null)),
     [id, fiche.error]);
@@ -94,6 +97,29 @@ export default function FichePatient() {
             )}
           </section>
         </>
+      )}
+
+      {derniere && (
+        <section className={`card alert-card sev-${derniere.severity}`}>
+          <div className="row spread">
+            <h2>Dernière intervention d'urgence <Badge value={derniere.status} /></h2>
+            <span className="muted small">{fmtDateTime(derniere.startedAt)}</span>
+          </div>
+          {derniere.dossier?.triage && (
+            <p>
+              <Badge value={derniere.dossier.triage.riskLevel} /> <strong>Risque {derniere.dossier.triage.riskScore}/100</strong>
+              {' '}· {derniere.dossier.triage.summary}{' '}
+              <span className="muted small">(résumé : {derniere.dossier.triage.source})</span>
+            </p>
+          )}
+          <div className="steps">
+            {derniere.steps.map((s) => (
+              <div className="step" key={s.name}><strong>{s.name.replaceAll('_', ' ').toLowerCase()}</strong> <Badge value={s.status} />
+                <small>{s.detail || '...'}</small></div>
+            ))}
+          </div>
+          {derniere.adminAlert && <p className="alert alert-error">{derniere.adminAlert}</p>}
+        </section>
       )}
 
       <section className="card">
