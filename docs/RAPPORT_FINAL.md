@@ -25,7 +25,7 @@ Voir [`ARCHITECTURE.md`](ARCHITECTURE.md) pour les schémas et [`DEMO.md`](DEMO.
 | Composant | Port | Contenu |
 |---|---|---|
 | Gateway | 8080 | JWT (patient, médecin, admin), matrice de rôles, accès limité aux données du patient, correlation-id, CORS, limitation de débit, journal d'audit, erreurs au format commun |
-| SOAP `soap-ehr` | 8081 | 4 opérations (droits, feuille de soins, historique, comparaison de garanties), 2 SOAP Faults, code généré depuis le WSDL |
+| SOAP `soap-ehr` | 8081 | 4 opérations (droits, feuille de soins, historique, comparaison de garanties), 2 SOAP Faults, code généré depuis le WSDL, **WS-Security UsernameToken** |
 | REST `rest-portal` | 8082 | rendez-vous (CRUD), créneaux, patients, ordonnances, ambulances, envoi d'urgence idempotent, lien de visio Jitsi, vue FHIR en lecture seule |
 | GraphQL `graphql-dashboard` | 8083 | `patients(filtre)`, `patient(id)`, `alerts`, subscription `alertCreated` ; erreurs partielles ciblées |
 | gRPC `grpc-telemetry` | 9090 | `StreamVitals`, `SubscribeAlerts`, lectures ; score **NEWS2**, seuils absolus, tendance, dédoublonnage, fermeture automatique |
@@ -44,11 +44,11 @@ Voir [`ARCHITECTURE.md`](ARCHITECTURE.md) pour les schémas et [`DEMO.md`](DEMO.
 | Temps réel jusqu'au navigateur (subscription GraphQL, SSE) | fait | `Alertes.jsx`, `Interventions.jsx` |
 | Orchestration résiliente (saga, reprises, mode dégradé) | fait | `WorkflowEngine.java` |
 | Sécurité par rôles (JWT, journal d'audit) | fait | Gateway |
-| WS-Security (UsernameToken) sur le SOAP | **non fait** | voir section 6 |
+| WS-Security (UsernameToken) sur le SOAP | fait : mot de passe haché, nonce, date, rejeu refusé | `WsConfig.java` (serveur), `SoapSecurityInjector.java` (Gateway), `WsSecurityHeader.java` (orchestrateur) |
 | REST inspiré de FHIR | fait (lecture seule) | `FhirController.java` |
 | Téléconsultation (lien Jitsi) | fait | champ `visioUrl` des rendez-vous |
 | Résumé IA de la fiche d'intervention | fait ; **modèle de langage non testé de bout en bout** (aucune clé d'API dans le dépôt) | `ai-triage` |
-| Carte d'ambulance | **non fait** | |
+| Carte d'ambulance | fait : schéma SVG du Grand Tunis, ambulances par statut, trajet animé vers le domicile (temps x60) | `Carte.jsx` |
 | Observabilité (correlation-id, Prometheus, Grafana) | fait | tous les services |
 
 ## 4. Choix de conception à retenir
@@ -65,12 +65,13 @@ Voir [`ARCHITECTURE.md`](ARCHITECTURE.md) pour les schémas et [`DEMO.md`](DEMO.
 
 | Niveau | Quoi | Résultat |
 |---|---|---|
-| Unitaires Java | SOAP (11), REST (16), Gateway (16), gRPC (29), GraphQL (10), orchestrateur (34) | 116 tests |
+| Unitaires Java | SOAP (13), REST (16), Gateway (24), gRPC (29), GraphQL (10), orchestrateur (38) | 130 tests |
 | Unitaires Python | service IA (20), scénarios du simulateur (10) | 30 tests |
-| Bout en bout, partie A | `tools/smoke-test-a.sh` : sécurité, rôles, REST, FHIR, SOAP, urgences, erreurs | 67 vérifications |
+| Bout en bout, partie A | `tools/smoke-test-a.sh` : sécurité, rôles, REST, FHIR, SOAP et WS-Security, urgences, erreurs | 72 vérifications |
 | Bout en bout, chaîne d'urgence | `tools/smoke-test-b.sh` : capteurs → alerte → 4 étapes → fiche chez le médecin, idempotence, SSE, métriques | 31 vérifications |
 | Résilience | `tools/chaos-demo.sh` : coupe réellement le SOAP, le GraphQL, le service IA puis le REST pendant une intervention | 20 vérifications |
 | Contrat | `portal.openapi.yaml` validé par Spectral ; WSDL et exemples validés par `xmllint` | 0 erreur |
+| Intégration continue | `.github/workflows/ci.yml` : tests de tous les services, build du client, contrats, docker-compose | écrite et validée en syntaxe ; **pas encore exécutée sur GitHub** |
 
 Ces tests ont trouvé des défauts réels, corrigés :
 
@@ -83,14 +84,14 @@ Ces tests ont trouvé des défauts réels, corrigés :
 
 | Limite | Détail |
 |---|---|
-| WS-Security | non implémenté : changement incompatible pour l'orchestrateur et le navigateur (un secret ne peut pas être embarqué dans le client web). Solution envisagée : compte de service dont le mot de passe vient de `.env`, ajouté par l'orchestrateur et par la Gateway. |
-| Carte d'ambulance | non faite (la position de l'ambulance et le délai d'arrivée sont disponibles dans l'intervention). |
+| WS-Security | un seul compte de service (`ehr-client`), mot de passe dans `.env`, partagé par le SOAP, la Gateway et l'orchestrateur ; pas de signature ni de chiffrement des messages (le haché protège le mot de passe, pas le contenu), pas de TLS. L'accès direct au SOAP (port 8081) exige l'en-tête ; le WSDL reste libre. |
+| Carte d'ambulance | schéma sans fond de carte (hors ligne) ; la position de l'ambulance est interpolée côté client entre sa base et le domicile du patient, ce n'est pas un suivi GPS. |
 | Modèle de langage | le résumé par un LLM est codé (clé `ANTHROPIC_API_KEY`) et testé avec un faux serveur, mais **pas avec le vrai service**. Sans clé, le modèle de phrases est utilisé. Activer le LLM envoie la fiche du patient à un service externe : à réserver aux données de test. |
 | Domicile du patient | le jeu de données n'a pas d'adresse : le domicile utilisé pour choisir l'ambulance est **simulé** (stable par patient, Grand Tunis). |
 | Ambulance non rappelable | pas d'endpoint d'annulation d'envoi : la compensation annule le rendez-vous d'urgence ; l'ambulance se libère seule à ETA + 10 min. |
 | Sécurité des services internes | pas de JWT entre services (réseau Docker), gRPC et HTTP en clair, mot de passe de démonstration commun. Acceptable pour un projet pédagogique, pas pour la production. |
 | Métriques publiques | `/actuator/prometheus` de la Gateway est lisible sans jeton. |
-| Pas d'intégration continue | les tests se lancent à la main (commandes dans le `README`). |
+| Intégration continue | le workflow GitHub Actions est écrit mais n'a pas encore tourné sur GitHub ; les tests de bout en bout et de panne (plateforme complète) se lancent à la main. |
 | Montée en charge | non mesurée. La limitation de débit de la Gateway est en mémoire (une seule instance). |
 
 ## 7. Répartition du travail et relecture par B
@@ -113,7 +114,7 @@ Ces tests ont trouvé des défauts réels, corrigés :
 ```bash
 cp .env.example .env                 # renseigner POSTGRES_PASSWORD, JWT_SECRET, DEMO_PASSWORD
 docker compose up -d --build         # plateforme complète
-bash tools/smoke-test-a.sh           # 67 vérifications
+bash tools/smoke-test-a.sh           # 72 vérifications
 bash tools/smoke-test-b.sh           # 31 vérifications
 bash tools/chaos-demo.sh             # 20 vérifications, coupe réellement des services
 bash tools/reset-demo.sh             # remet la démo à zéro

@@ -121,6 +121,16 @@ soap comparerGaranties '<ehr:patientId>PAT-000002</ehr:patientId><ehr:priseEnCha
 check "comparerGaranties : 3 différences" 3 "$(echo "$BODY" | xc difference)"
 soap verifierDroitsCNAM '<ehr:patientId>PAT-000002</ehr:patientId><ehr:codeActe>C</ehr:codeActe>' ""
 check "SOAP sans jeton -> 401" 401 "$CODE"
+echo "== WS-Security (UsernameToken)"
+DIRECT='<?xml version="1.0"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ehr="http://smarthealthcare.tn/ehr"><soapenv:Body><ehr:verifierDroitsCNAMRequest><ehr:patientId>PAT-000002</ehr:patientId><ehr:codeActe>CS</ehr:codeActe></ehr:verifierDroitsCNAMRequest></soapenv:Body></soapenv:Envelope>'
+CODE_DIRECT=$(curl -s -o /tmp/sh_direct -w '%{http_code}' -X POST http://localhost:8081/ws/ehr -H 'Content-Type: text/xml' --data-binary "$DIRECT")
+check "SOAP direct sans en-tête de sécurité refusé (Fault)" "500 true" "$CODE_DIRECT $(grep -qi 'Fault' /tmp/sh_direct && ! grep -q 'droitsOuverts' /tmp/sh_direct && echo true || echo false)"
+FORGE='<?xml version="1.0"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ehr="http://smarthealthcare.tn/ehr"><soapenv:Header><wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><wsse:UsernameToken><wsse:Username>ehr-client</wsse:Username><wsse:Password>mauvais</wsse:Password></wsse:UsernameToken></wsse:Security></soapenv:Header><soapenv:Body><ehr:verifierDroitsCNAMRequest><ehr:patientId>PAT-000002</ehr:patientId><ehr:codeActe>CS</ehr:codeActe></ehr:verifierDroitsCNAMRequest></soapenv:Body></soapenv:Envelope>'
+check "SOAP direct avec un mauvais mot de passe refusé" 500 "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8081/ws/ehr -H 'Content-Type: text/xml' --data-binary "$FORGE")"
+req POST /api/ehr "$FORGE" "$TP" "text/xml; charset=utf-8"
+check "via la Gateway, un en-tête forgé par le client est remplacé : appel accepté" true "$(echo "$BODY" | grep -q 'droitsOuverts' && echo true || echo false)"
+check "en-tête WS-Security rejoué (même nonce) : 1er envoi accepté, 2e refusé" "200 500" "$(python tools/test-wss-replay.py)"
+check "le WSDL reste accessible sans jeton de sécurité" 200 "$(curl -s -o /dev/null -w '%{http_code}' 'http://localhost:8081/ws/ehr?wsdl')"
 req GET "/api/ehr?wsdl" "" "$TP"
 check "WSDL servi via la Gateway" true "$(echo "$BODY" | grep -q 'EhrService' && echo true || echo false)"
 

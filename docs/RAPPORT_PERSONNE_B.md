@@ -154,6 +154,8 @@ Comportement de `/emergency/dispatch` (à connaître pour l'étape 3 du workflow
 
 Format d'erreur REST (toujours) : `{ "code": "...", "message": "...", "correlationId": "..." }`.
 
+> **Mise à jour : le SOAP exige désormais un en-tête WS-Security** (UsernameToken haché, voir `contracts/conventions.md`). Les exemples `curl` directs sur le port 8081 ci-dessous sont refusés sans cet en-tête ; passer par la Gateway (`/api/ehr`, qui l'ajoute) ou utiliser `WsSecurityHeader` de l'orchestrateur.
+
 ### 4.2 SOAP : appel depuis Java
 
 Le plus simple : **générer le client à partir du même WSDL** avec `cxf-codegen-plugin` (voir `services/soap-ehr/pom.xml`, 15 lignes à copier), ou appeler en XML brut avec `WebClient` et les fichiers `contracts/ehr/examples/*.request.xml` comme modèles.
