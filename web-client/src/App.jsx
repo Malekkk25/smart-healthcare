@@ -11,6 +11,7 @@ import Alertes from './pages/Alertes.jsx';
 import Creneaux from './pages/Creneaux.jsx';
 import Ambulances from './pages/Ambulances.jsx';
 import Interventions from './pages/Interventions.jsx';
+import Carte from './pages/Carte.jsx';
 
 const NAV = {
   PATIENT: [
@@ -23,12 +24,14 @@ const NAV = {
     ['/patients', 'Patients'],
     ['/alertes', 'Alertes en direct'],
     ['/interventions', 'Interventions'],
+    ['/carte', 'Carte'],
     ['/droits', 'Droits CNAM'],
   ],
   ADMIN: [
     ['/ambulances', 'Ambulances et urgences'],
     ['/creneaux', 'Créneaux'],
     ['/interventions', 'Interventions'],
+    ['/carte', 'Carte'],
     ['/patients', 'Patients'],
     ['/droits', 'Droits CNAM'],
   ],
@@ -83,6 +86,7 @@ export default function App() {
         <Route path="/ambulances" element={<Protected roles={['ADMIN']}><Ambulances /></Protected>} />
         <Route path="/creneaux" element={<Protected roles={['ADMIN']}><Creneaux /></Protected>} />
         <Route path="/interventions" element={<Protected roles={staff}><Interventions /></Protected>} />
+        <Route path="/carte" element={<Protected roles={staff}><Carte /></Protected>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
