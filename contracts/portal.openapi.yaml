@@ -430,6 +430,128 @@ paths:
         '404':
           $ref: '#/components/responses/NonTrouve'
 
+  /fhir/Patient/{id}:
+    get:
+      tags: [Patients]
+      operationId: fhirPatient
+      summary: Patient au format FHIR
+      description: |
+        Vue en lecture seule inspirée de HL7 FHIR R4 (ressource `Patient`). Ce n'est pas une implémentation
+        complète du standard. Réponse en `application/fhir+json`.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/PatientId'
+      responses:
+        '200':
+          description: Ressource FHIR Patient.
+          content:
+            application/fhir+json:
+              schema:
+                type: object
+              example:
+                resourceType: Patient
+                id: PAT-000004
+                identifier:
+                  - system: http://smarthealthcare.tn/numero-assure
+                    value: '9776552803'
+                name:
+                  - family: Bouzid
+                    given: [Sarra]
+                gender: female
+                birthDate: '1946-06-28'
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+
+  /fhir/Appointment:
+    get:
+      tags: [Rendez-vous]
+      operationId: fhirAppointments
+      summary: Rendez-vous d'un patient au format FHIR
+      description: Bundle FHIR de type `searchset` contenant des ressources `Appointment` (statuts booked, cancelled, fulfilled).
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: patient
+          in: query
+          required: true
+          description: Identifiant du patient.
+          schema:
+            type: string
+            pattern: '^PAT-[0-9]{6}$'
+          example: PAT-000002
+      responses:
+        '200':
+          description: Bundle FHIR.
+          content:
+            application/fhir+json:
+              schema:
+                type: object
+              example:
+                resourceType: Bundle
+                type: searchset
+                total: 1
+                entry:
+                  - resource:
+                      resourceType: Appointment
+                      id: APT-2026-000451
+                      status: booked
+                      start: '2026-11-25T09:00:00Z'
+                      end: '2026-11-25T09:30:00Z'
+                      participant:
+                        - actor: {reference: Patient/PAT-000002}
+                          status: accepted
+                        - actor: {reference: Practitioner/DOC-001}
+                          status: accepted
+        '400':
+          $ref: '#/components/responses/RequeteInvalide'
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+
+  /fhir/MedicationRequest:
+    get:
+      tags: [Patients]
+      operationId: fhirMedicationRequests
+      summary: Ordonnances d'un patient au format FHIR
+      description: Bundle FHIR de type `searchset` contenant une ressource `MedicationRequest` par médicament prescrit.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: patient
+          in: query
+          required: true
+          description: Identifiant du patient.
+          schema:
+            type: string
+            pattern: '^PAT-[0-9]{6}$'
+          example: PAT-000002
+      responses:
+        '200':
+          description: Bundle FHIR.
+          content:
+            application/fhir+json:
+              schema:
+                type: object
+              example:
+                resourceType: Bundle
+                type: searchset
+                total: 1
+                entry:
+                  - resource:
+                      resourceType: MedicationRequest
+                      id: ORD-2026-001230-1
+                      status: active
+                      intent: order
+                      subject: {reference: Patient/PAT-000002}
+                      authoredOn: '2026-10-12'
+                      requester: {reference: Practitioner/DOC-001}
+                      medicationCodeableConcept: {text: Furosémide 40 mg}
+                      dosageInstruction:
+                        - text: 1 comprimé le matin
+        '400':
+          $ref: '#/components/responses/RequeteInvalide'
+        '401':
+          $ref: '#/components/responses/NonAuthentifie'
+
   /ambulances:
     get:
       tags: [Urgences]
@@ -687,6 +809,11 @@ components:
       type: object
       required: [id, patientId, slotId, doctorId, debut, statut]
       properties:
+        visioUrl:
+          type: string
+          format: uri
+          description: Lien de téléconsultation (Jitsi), présent tant que le rendez-vous est confirmé.
+          example: https://meet.jit.si/SmartHealthcare-3fa91c07b2d84e5a6c10
         id:
           type: string
         patientId:

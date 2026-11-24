@@ -1,12 +1,17 @@
 package tn.smarthealthcare.portal.service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Year;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
@@ -19,9 +24,10 @@ import tn.smarthealthcare.portal.web.ApiException;
 @Service
 public class AppointmentService {
 
-    private static final RowMapper<RendezVous> RDV_MAPPER = (rs, i) -> new RendezVous(
+    private final RowMapper<RendezVous> rdvMapper = (rs, i) -> new RendezVous(
             rs.getString("id"), rs.getString("patient_id"), rs.getString("slot_id"), rs.getString("doctor_id"),
-            rs.getTimestamp("debut").toInstant(), rs.getString("motif"), rs.getString("statut"));
+            rs.getTimestamp("debut").toInstant(), rs.getString("motif"), rs.getString("statut"),
+            "CONFIRME".equals(rs.getString("statut")) ? lienVisio(rs.getString("id")) : null);
 
     private static final String RDV_SQL = """
             SELECT r.id, r.patient_id, r.slot_id, c.doctor_id, c.debut, r.motif, r.statut
@@ -30,9 +36,29 @@ public class AppointmentService {
     private final JdbcTemplate jdbc;
     private final PatientRepository patients;
 
-    public AppointmentService(JdbcTemplate jdbc, PatientRepository patients) {
+    private final String visioBaseUrl;
+    private final String visioSel;
+
+    public AppointmentService(JdbcTemplate jdbc, PatientRepository patients,
+                              @Value("${app.visio.base-url:https://meet.jit.si}") String visioBaseUrl,
+                              @Value("${app.visio.salt:smart-healthcare-dev}") String visioSel) {
         this.jdbc = jdbc;
         this.patients = patients;
+        this.visioBaseUrl = visioBaseUrl;
+        this.visioSel = visioSel;
+    }
+
+    /**
+     * Lien de téléconsultation Jitsi. Le nom de la salle dérive d'un hachage de l'identifiant du rendez-vous
+     * et d'un sel secret : il n'est donc pas devinable à partir de « APT-2026-000451 ».
+     */
+    String lienVisio(String rendezVousId) {
+        try {
+            byte[] h = MessageDigest.getInstance("SHA-256").digest((visioSel + rendezVousId).getBytes(StandardCharsets.UTF_8));
+            return visioBaseUrl + "/SmartHealthcare-" + HexFormat.of().formatHex(h, 0, 10);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     // ---------------------------------------------------------------- créneaux
@@ -61,13 +87,13 @@ public class AppointmentService {
     // ---------------------------------------------------------------- rendez-vous
 
     public RendezVous obtenir(String id) {
-        return jdbc.query(RDV_SQL + " WHERE r.id = ?", RDV_MAPPER, id).stream().findFirst()
+        return jdbc.query(RDV_SQL + " WHERE r.id = ?", rdvMapper, id).stream().findFirst()
                 .orElseThrow(() -> ApiException.introuvable("Aucun rendez-vous avec l'identifiant " + id + "."));
     }
 
     public List<RendezVous> listerParPatient(String patientId) {
         patients.obtenir(patientId);
-        return jdbc.query(RDV_SQL + " WHERE r.patient_id = ? ORDER BY c.debut", RDV_MAPPER, patientId);
+        return jdbc.query(RDV_SQL + " WHERE r.patient_id = ? ORDER BY c.debut", rdvMapper, patientId);
     }
 
     @Transactional

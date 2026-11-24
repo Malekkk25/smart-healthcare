@@ -28,7 +28,8 @@ public final class Dtos {
     public record RendezVousModification(String slotId, String motif) {}
 
     public record RendezVous(String id, String patientId, String slotId, String doctorId, Instant debut, String motif,
-                             String statut) {}
+                             String statut,
+                             @JsonInclude(JsonInclude.Include.NON_NULL) String visioUrl) {}
 
     public record Patient(String id, String nom, String prenom, String sexe, LocalDate dateNaissance, String service,
                           String pathologie, String niveauRisque, String numeroAssure, Integer tauxRemboursement) {}

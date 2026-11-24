@@ -40,6 +40,12 @@ public class AccessRules {
     private final List<Rule> rules = List.of(
             publique(HttpMethod.POST, "/api/auth/login"),
             publique(HttpMethod.GET, "/actuator/health"),
+            publique(HttpMethod.GET, "/actuator/prometheus"), // métriques, lues par Prometheus
+
+            // Portail REST : vue FHIR en lecture seule (un patient ne lit que ses propres ressources)
+            rule(Set.of(HttpMethod.GET), "/api/portal/fhir/Patient/{id}", TOUS, "id", null),
+            rule(Set.of(HttpMethod.GET), "/api/portal/fhir/Appointment", TOUS, null, "patient"),
+            rule(Set.of(HttpMethod.GET), "/api/portal/fhir/MedicationRequest", TOUS, null, "patient"),
 
             // Portail REST
             rule(Set.of(HttpMethod.GET), "/api/portal/patients", STAFF, null, null),

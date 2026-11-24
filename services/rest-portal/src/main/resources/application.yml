@@ -19,6 +19,11 @@ spring:
     resources:
       add-mappings: false
 
+app:
+  visio:
+    base-url: ${VISIO_BASE_URL:https://meet.jit.si}
+    salt: ${VISIO_SALT:smart-healthcare-dev}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -26,3 +31,15 @@ springdoc:
 logging:
   pattern:
     level: "%5p [%X{correlationId:-}]"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
