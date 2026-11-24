@@ -19,7 +19,7 @@ class GatewaySecurityTest {
 
     private static JwtService jwt(String secret, long ttl) {
         return new JwtService(new AppProperties("x", new AppProperties.Jwt(secret, ttl),
-                new AppProperties.RateLimit(100, 10), List.of()));
+                new AppProperties.RateLimit(100, 10), new AppProperties.Ehr("ehr-client", ""), List.of()));
     }
 
     // ------------------------------------------------------------------ JWT

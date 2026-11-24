@@ -80,7 +80,8 @@ public class WorkflowRepository {
                 rs.getString("status"), rs.getTimestamp("started_at").toInstant(), ended == null ? null : ended.toInstant(),
                 rs.getString("admin_alert"), steps, rs.getString("severity"), (Integer) rs.getObject("news2_score"),
                 rs.getString("reason"), rs.getString("dispatch_id"), rs.getString("ambulance_id"),
-                (Integer) rs.getObject("eta_minutes"), rs.getString("appointment_id"), readDossier(rs.getString("dossier")));
+                (Integer) rs.getObject("eta_minutes"), rs.getString("appointment_id"), readDossier(rs.getString("dossier")),
+                HomeLocation.of(rs.getString("patient_id"))[0], HomeLocation.of(rs.getString("patient_id"))[1]);
     }
 
     private Map<String, Object> readDossier(String text) {

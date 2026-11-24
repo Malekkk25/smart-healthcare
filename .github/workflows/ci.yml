@@ -1,0 +1,82 @@
+name: CI
+
+# Vérifie à chaque push et pull request : tests unitaires de tous les services, build du client web,
+# validité des contrats (OpenAPI, WSDL) et du docker-compose.yml.
+# Les tests de bout en bout (tools/smoke-test-*.sh, tools/chaos-demo.sh) exigent la plateforme complète : à lancer à la main.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  java:
+    name: Tests Java (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [soap-ehr, rest-portal, gateway, grpc-telemetry, graphql-dashboard, orchestrator]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: mvn test
+        working-directory: services/${{ matrix.service }}
+        run: mvn -B -ntp test
+
+  python:
+    name: Tests Python (service IA et simulateur)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: services/ai-triage/requirements.txt
+      - name: Service IA
+        working-directory: services/ai-triage
+        run: |
+          pip install -r requirements.txt
+          python -m pytest tests -q
+      - name: Scénarios du simulateur
+        working-directory: tools/sensor-simulator
+        run: python -m unittest test_scenarios -v
+
+  web:
+    name: Client web (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web-client/package-lock.json
+      - working-directory: web-client
+        run: |
+          npm ci
+          npm run build
+
+  contracts:
+    name: Contrats et docker-compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: OpenAPI (Spectral)
+        run: |
+          echo 'extends: ["spectral:oas"]' > /tmp/spectral.yaml
+          npx --yes @stoplight/spectral-cli@6 lint contracts/portal.openapi.yaml --ruleset /tmp/spectral.yaml --fail-severity=error
+      - name: WSDL, XSD et exemples SOAP (xmllint)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libxml2-utils
+          cd contracts/ehr && xmllint --noout ehr.xsd ehr.wsdl examples/*.xml
+      - name: docker-compose.yml
+        run: |
+          cp .env.example .env
+          docker compose config -q
+          docker compose --profile demo --profile observability config -q
+          docker compose -f docker-compose.yml -f docker-compose.stubs.yml config -q

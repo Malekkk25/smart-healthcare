@@ -26,6 +26,8 @@ orchestrator:
   wait-ms: ${ORCHESTRATOR_WAIT_MS:500} # attente entre deux essais
   deferred-delay-seconds: ${ORCHESTRATOR_DEFERRED_DELAY:15}
   deferred-max-attempts: 40
+  ehr-user: ${EHR_SERVICE_USER:ehr-client}
+  ehr-password: ${EHR_SERVICE_PASSWORD:}   # WS-Security UsernameToken ; vide = pas d'en-tête de sécurité
 
 management:
   endpoints:

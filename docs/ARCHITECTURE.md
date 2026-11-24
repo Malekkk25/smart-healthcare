@@ -47,6 +47,7 @@ Règles d'architecture :
 - L'**orchestrateur** est le seul composant qui appelle les quatre services.
 - Le service **gRPC** est la seule source des alertes (pour l'orchestrateur et le GraphQL).
 - Les services internes ne vérifient pas le JWT : seule la Gateway authentifie (réseau Docker).
+- Le service **SOAP** exige en plus un en-tête **WS-Security UsernameToken** (mot de passe haché, nonce) : la Gateway et l'orchestrateur l'ajoutent, le navigateur ne détient aucun secret.
 
 ## 2. Workflow d'urgence : 4 étapes, 4 replis
 

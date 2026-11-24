@@ -40,7 +40,7 @@ web-client/                   Client web React
 ## Démarrage
 
 ```bash
-cp .env.example .env     # puis renseigner POSTGRES_PASSWORD, JWT_SECRET et DEMO_PASSWORD
+cp .env.example .env     # puis renseigner POSTGRES_PASSWORD, JWT_SECRET, DEMO_PASSWORD et EHR_SERVICE_PASSWORD
 docker compose up -d --build
 ```
 
@@ -49,7 +49,7 @@ Le premier démarrage compile les services Java dans Docker (plusieurs minutes).
 - Client web : <http://localhost:3000>
 - Gateway : <http://localhost:8080>
 - Swagger UI du portail REST : <http://localhost:8082/swagger-ui.html>
-- WSDL du service SOAP : <http://localhost:8081/ws/ehr?wsdl>
+- WSDL du service SOAP : <http://localhost:8081/ws/ehr?wsdl> (les appels SOAP exigent un en-tête WS-Security : passer par la Gateway, qui l'ajoute)
 
 Comptes de démonstration (mot de passe : `DEMO_PASSWORD` du fichier `.env`) : `patient1` (PAT-000002), `patient2` (PAT-000004), `medecin`, `admin`.
 
@@ -70,6 +70,8 @@ bash tools/chaos-demo.sh       # coupe le SOAP, le GraphQL, l'IA puis le REST pe
 ```
 
 Démonstration : `bash tools/reset-demo.sh` puis voir [`docs/DEMO.md`](docs/DEMO.md).
+
+Intégration continue : `.github/workflows/ci.yml` (tests de tous les services, build du client, contrats, docker-compose).
 
 Tests unitaires (JUnit, dans Docker, sans installer Maven) :
 

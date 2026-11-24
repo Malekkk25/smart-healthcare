@@ -16,4 +16,6 @@ public record OrchestratorProperties(
         int attempts,
         long waitMs,
         long deferredDelaySeconds,
-        int deferredMaxAttempts) {}
+        int deferredMaxAttempts,
+        String ehrUser,
+        String ehrPassword) {}

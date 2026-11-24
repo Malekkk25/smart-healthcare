@@ -67,6 +67,7 @@ Ces ajouts ne changent rien aux champs et routes ci-dessus ; un client qui les i
 
 **Champs facultatifs de `Workflow`** : `severity`, `news2Score`, `reason` (l'alerte d'origine), `dispatchId`,
 `ambulanceId`, `etaMinutes`, `appointmentId` (résultat de l'étape 3 ; `appointmentId` = créneau d'urgence de repli) et
+`latitude` et `longitude` (domicile du patient, **simulé** : le jeu de données n'a pas d'adresse) et
 `dossier` (la fiche d'intervention, `null` tant qu'elle n'est pas prête) :
 
 ```json

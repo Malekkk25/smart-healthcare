@@ -4,6 +4,12 @@ server:
 cxf:
   path: /ws
 
+# WS-Security : UsernameToken (mot de passe haché, nonce, date). Actif si un mot de passe est configuré.
+ehr:
+  security:
+    username: ${EHR_SERVICE_USER:ehr-client}
+    password: ${EHR_SERVICE_PASSWORD:}
+
 spring:
   application:
     name: soap-ehr

@@ -52,8 +52,12 @@ class ClientsTest {
     }
 
     private static OrchestratorProperties props(String base) {
+        return props(base, "");
+    }
+
+    private static OrchestratorProperties props(String base, String ehrPassword) {
         return new OrchestratorProperties(base + "/ws/ehr", base, base + "/graphql", base, "localhost:1", "C", "CRITIQUE",
-                1500, 3, 1, 0, 5);
+                1500, 3, 1, 0, 5, "ehr-client", ehrPassword);
     }
 
     private static final String SOAP_OK = """
@@ -117,6 +121,43 @@ class ClientsTest {
     void soapRefuseLesIdentifiantsSuspects() throws Exception {
         var client = new SoapEhrClient(props(serve(200, "text/xml", SOAP_OK)));
         assertThrows(RefusedException.class, () -> client.verifierDroits("PAT-1</ehr:patientId><x/>", "C", "cid"));
+    }
+
+    // ------------------------------------------------------------------ WS-Security
+
+    @Test
+    void soapSansMotDePasseDeServiceNEnvoieAucunEnteteDeSecurite() throws Exception {
+        new SoapEhrClient(props(serve(200, "text/xml", SOAP_OK), "")).verifierDroits("PAT-000002", "CS", "cid");
+        assertFalse(lastBody.get().contains("Security"));
+    }
+
+    @Test
+    void soapAvecMotDePasseDeServiceEnvoieUnUsernameTokenHache() throws Exception {
+        new SoapEhrClient(props(serve(200, "text/xml", SOAP_OK), "secret")).verifierDroits("PAT-000002", "CS", "cid");
+        String xml = lastBody.get();
+        assertTrue(xml.contains("<wsse:Username>ehr-client</wsse:Username>"));
+        assertTrue(xml.contains("#PasswordDigest"));
+        assertFalse(xml.contains(">secret<"), "le mot de passe ne circule jamais en clair");
+        // l'en-tête précède le corps de l'enveloppe
+        assertTrue(xml.indexOf("<soapenv:Header>") < xml.indexOf("<soapenv:Body>"));
+    }
+
+    @Test
+    void chaqueAppelPorteUnNonceNeuf() throws Exception {
+        var client = new SoapEhrClient(props(serve(200, "text/xml", SOAP_OK), "secret"));
+        client.verifierDroits("PAT-000002", "CS", "cid");
+        String premier = lastBody.get().replaceAll("(?s).*<wsse:Nonce[^>]*>([^<]*)</wsse:Nonce>.*", "$1");
+        client.verifierDroits("PAT-000002", "CS", "cid");
+        String second = lastBody.get().replaceAll("(?s).*<wsse:Nonce[^>]*>([^<]*)</wsse:Nonce>.*", "$1");
+        assertTrue(!premier.equals(second) && !premier.isBlank(), "nonce rejoué : " + premier);
+    }
+
+    @Test
+    void leHacheEstCeluiAttenduParWss4j() {
+        // Vecteur de test commun aux trois modules ; WSS4J (soap-ehr) calcule la même valeur
+        assertEquals("IKtlI2J6LyBZlHTY7s1cyxXVh7M=",
+                tn.smarthealthcare.orchestrator.clients.WsSecurityHeader.digest(
+                        "0123456789abcdef".getBytes(StandardCharsets.UTF_8), "2026-11-24T12:00:00Z", "secret"));
     }
 
     // ------------------------------------------------------------------ REST

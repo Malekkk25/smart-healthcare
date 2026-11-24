@@ -17,7 +17,17 @@ spring:
           filters:
             - StripPrefix=2
 
-        # Service SOAP : simple relais /api/ehr -> soap-ehr /ws/ehr (WSDL : /api/ehr?wsdl)
+        # Service SOAP (POST) : la Gateway authentifie l'utilisateur (JWT) puis ajoute l'en-tête WS-Security du compte de service
+        - id: ehr-soap
+          uri: ${EHR_URL:http://soap-ehr:8081}
+          predicates:
+            - Path=/api/ehr/**,/api/ehr
+            - Method=POST
+          filters:
+            - RewritePath=/api/ehr(?<segment>/?.*), /ws/ehr$\{segment}
+            - SoapSecurity
+
+        # Service SOAP (autres méthodes, par exemple GET du WSDL) : simple relais /api/ehr -> soap-ehr /ws/ehr
         - id: ehr
           uri: ${EHR_URL:http://soap-ehr:8081}
           predicates:
@@ -69,6 +79,9 @@ app:
     # Valeur de développement uniquement : en Docker, JWT_SECRET vient du fichier .env
     secret: ${JWT_SECRET:dev-only-secret-change-me-at-least-32-bytes!}
     ttl-seconds: 28800
+  ehr:
+    username: ${EHR_SERVICE_USER:ehr-client}
+    password: ${EHR_SERVICE_PASSWORD:}
   rate-limit:
     requests-per-minute: ${RATE_LIMIT_PER_MINUTE:600}
     login-per-minute: ${RATE_LIMIT_LOGIN_PER_MINUTE:30}
