@@ -1,0 +1,81 @@
+# Niveau de risque du PATIENT (dossier)
+enum RiskLevel { FAIBLE MOYEN ELEVE }
+
+# Gravité d'une ALERTE : ne pas confondre avec RiskLevel
+enum Severity { FAIBLE MOYENNE ELEVEE CRITIQUE }
+
+enum AlertStatus { OPEN ACKNOWLEDGED CLOSED }
+
+input PatientFilter {
+  service: String
+  pathologie: String
+  niveauRisque: RiskLevel
+}
+
+type Query {
+  patients(filtre: PatientFilter): [Patient!]!
+  patient(id: ID!): Patient
+  alerts(patientId: ID, status: AlertStatus, limit: Int = 50): [Alert!]!
+}
+
+type Subscription {
+  alertCreated(minSeverity: Severity = ELEVEE): Alert!
+}
+
+type Patient {
+  id: ID!
+  nom: String!
+  prenom: String!
+  sexe: String!
+  dateNaissance: String!
+  service: String
+  pathologie: String
+  niveauRisque: RiskLevel
+  numeroAssure: String
+  tauxRemboursement: Int
+  latestVital: Vital                      # gRPC GetLatestVitals
+  vitals(limit: Int = 20): [Vital!]!      # gRPC ListVitals
+  alerts(status: AlertStatus): [Alert!]!  # gRPC ListAlerts
+  treatment: Treatment                    # REST /patients/{id}/prescriptions
+}
+
+type Vital {
+  measuredAt: String!
+  heartRate: Int
+  respRate: Int
+  spo2: Float
+  systolicBp: Int
+  diastolicBp: Int
+  temperature: Float
+  onOxygen: Boolean
+  consciousness: String
+}
+
+type Alert {
+  id: ID!
+  patientId: ID!
+  raisedAt: String!
+  severity: Severity!
+  news2Score: Int!
+  reason: String
+  trendWorsening: Boolean!
+  status: AlertStatus!
+  patient: Patient
+}
+
+type Treatment {
+  ordonnances: [Prescription!]!
+}
+
+type Prescription {
+  id: ID!
+  doctorId: String
+  date: String
+  medicaments: [Medicament!]!
+}
+
+type Medicament {
+  nom: String!
+  posologie: String!
+  dureeJours: Int
+}

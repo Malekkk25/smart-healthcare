@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package smarthealthcare.telemetry.v1;
+
+option java_multiple_files = true;
+option java_package = "tn.smarthealthcare.telemetry.grpc";
+
+import "google/protobuf/timestamp.proto";
+
+// Convention : métadonnée gRPC "x-correlation-id" sur chaque appel.
+service Telemetry {
+  // Le capteur (simulateur) envoie un flux de mesures ; réponse à la fin du flux.
+  rpc StreamVitals(stream VitalSample) returns (StreamSummary);
+
+  // Les abonnés (orchestrateur, GraphQL) reçoivent les alertes au fil de l'eau.
+  rpc SubscribeAlerts(SubscribeRequest) returns (stream Alert);
+
+  // Lectures ponctuelles pour GraphQL et l'orchestrateur.
+  rpc GetLatestVitals(PatientRef) returns (VitalSample);
+  rpc ListVitals(ListVitalsRequest) returns (VitalList);
+  rpc ListAlerts(ListAlertsRequest) returns (AlertList);
+}
+
+enum Consciousness {
+  CONSCIOUSNESS_UNSPECIFIED = 0;
+  ALERT = 1;
+  CONFUSION = 2;
+  VOICE = 3;
+  PAIN = 4;
+  UNRESPONSIVE = 5;
+}
+
+// Mêmes mots que le REST (/emergency/dispatch).
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  FAIBLE = 1;
+  MOYENNE = 2;
+  ELEVEE = 3;
+  CRITIQUE = 4;
+}
+
+enum AlertStatus {
+  STATUS_UNSPECIFIED = 0;
+  OPEN = 1;
+  ACKNOWLEDGED = 2;
+  CLOSED = 3;
+}
+
+message VitalSample {
+  string patient_id = 1;                       // PAT-000123
+  google.protobuf.Timestamp measured_at = 2;
+  int32 heart_rate = 3;                        // battements/min
+  int32 resp_rate = 4;                         // respirations/min
+  double spo2 = 5;                             // %
+  int32 systolic_bp = 6;                       // mmHg
+  int32 diastolic_bp = 7;                      // mmHg
+  double temperature = 8;                      // °C
+  bool on_oxygen = 9;
+  Consciousness consciousness = 10;
+  bool fall_detected = 11;
+}
+
+message StreamSummary {
+  int64 accepted = 1;
+  int64 rejected = 2;
+}
+
+message PatientRef {
+  string patient_id = 1;
+}
+
+message SubscribeRequest {
+  repeated string patient_ids = 1;   // vide = tous les patients
+  Severity min_severity = 2;         // UNSPECIFIED = tout
+}
+
+message ListVitalsRequest {
+  string patient_id = 1;
+  int32 limit = 2;                   // 0 = défaut serveur (20)
+}
+
+message VitalList {
+  repeated VitalSample samples = 1;
+}
+
+message ListAlertsRequest {
+  string patient_id = 1;             // vide = tous
+  AlertStatus status = 2;            // UNSPECIFIED = tous
+  int32 limit = 3;                   // 0 = défaut serveur (50)
+}
+
+message AlertList {
+  repeated Alert alerts = 1;
+}
+
+message Alert {
+  string alert_id = 1;               // UUID
+  string patient_id = 2;
+  google.protobuf.Timestamp raised_at = 3;
+  Severity severity = 4;
+  int32 news2_score = 5;
+  string reason = 6;                 // ex. "NEWS2 = 8 (SpO2 90 %, FR 27)"
+  bool trend_worsening = 7;
+  AlertStatus status = 8;
+  VitalSample vitals = 9;            // dernières constantes ayant déclenché l'alerte
+}

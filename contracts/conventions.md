@@ -97,3 +97,13 @@ Entre conteneurs, on utilise le nom du service Docker (ex. `http://rest-portal:8
 - Branche `main` protégée, une branche par fonctionnalité (`feat/...`), messages de commit en français au format `type: description`.
 - Toute modification de `contracts/` doit être relue par l'autre personne.
 - `docker compose up` doit toujours démarrer l'ensemble : chacun ajoute ses services au même `docker-compose.yml`.
+
+## Conventions gRPC (ajout B)
+
+- Métadonnée `x-correlation-id` sur chaque appel gRPC ; si absente, le serveur en génère un.
+  Elle est placée dans le MDC des logs sous la clé `correlationId`.
+- gRPC en clair (HTTP/2 sans TLS) à l'intérieur du réseau Docker, port 9090.
+- Statuts d'erreur : `INVALID_ARGUMENT` (mesure invalide), `NOT_FOUND` (patient sans mesure),
+  `UNAVAILABLE` (service en démarrage).
+- Deux vocabulaires distincts : gravité d'alerte `FAIBLE|MOYENNE|ELEVEE|CRITIQUE`
+  et niveau de risque patient `FAIBLE|MOYEN|ELEVE`. Ne jamais les mélanger.
