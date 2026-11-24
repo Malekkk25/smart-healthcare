@@ -68,7 +68,10 @@ export default function RendezVous() {
                 <tr key={r.id}>
                   <td>{r.id}</td><td>{fmtDateTime(r.debut)}</td><td>{r.doctorId}</td><td>{r.motif || '-'}</td>
                   <td><Badge value={r.statut} /></td>
-                  <td>{r.statut === 'CONFIRME' && <button className="btn btn-ghost" onClick={() => annuler(r.id)}>Annuler</button>}</td>
+                  <td>
+                    {r.visioUrl && <a className="btn btn-ghost" href={r.visioUrl} target="_blank" rel="noreferrer">Visio</a>}{' '}
+                    {r.statut === 'CONFIRME' && <button className="btn btn-ghost" onClick={() => annuler(r.id)}>Annuler</button>}
+                  </td>
                 </tr>
               ))}
             </tbody>

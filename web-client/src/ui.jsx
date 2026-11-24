@@ -34,8 +34,16 @@ export function Badge({ value }) {
     DISPONIBLE: 'ok', CONFIRME: 'ok', FAIBLE: 'ok',
     EN_INTERVENTION: 'warn', MOYEN: 'warn', ANNULE: 'muted',
     HORS_SERVICE: 'bad', ELEVE: 'bad',
+    CRITIQUE: 'bad', ELEVEE: 'bad', MOYENNE: 'warn',
+    COMPLETED: 'ok', SUCCEEDED: 'ok', DEGRADED: 'warn', RUNNING: 'info', FAILED: 'bad', PENDING: 'muted',
+    OPEN: 'bad', ACKNOWLEDGED: 'warn', CLOSED: 'muted',
   }[value] || 'muted';
-  return <span className={`badge badge-${tone}`}>{String(value).replace('_', ' ').toLowerCase()}</span>;
+  const libelle = {
+    COMPLETED: 'terminée', SUCCEEDED: 'réussie', DEGRADED: 'mode dégradé', FAILED: 'échec', RUNNING: 'en cours',
+    PENDING: 'en attente', OPEN: 'ouverte', ACKNOWLEDGED: 'prise en compte', CLOSED: 'fermée',
+    CONFIRME: 'confirmé', ANNULE: 'annulé', ELEVEE: 'élevée', ELEVE: 'élevé',
+  }[value];
+  return <span className={`badge badge-${tone}`}>{libelle || String(value).replace('_', ' ').toLowerCase()}</span>;
 }
 
 export function PageTitle({ title, subtitle }) {
