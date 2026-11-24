@@ -15,4 +15,19 @@ scrape_configs:
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ["soap-ehr:8081"]
-  # À ajouter par B : graphql-dashboard, orchestrator, grpc-telemetry, ai-triage
+  - job_name: grpc-telemetry
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["grpc-telemetry:9092"]
+  - job_name: graphql-dashboard
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["graphql-dashboard:8083"]
+  - job_name: orchestrator
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["orchestrator:8085"]
+  - job_name: ai-triage
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["ai-triage:8086"]

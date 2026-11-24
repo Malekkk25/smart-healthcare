@@ -1,5 +1,12 @@
 # Rapport pour la personne B : ce qui est fait, ce qu'il reste à faire
 
+> **Mise à jour du 24/11/2026 : la partie 2 est implémentée.** À la demande de A, les services de B (`grpc-telemetry`,
+> `graphql-dashboard`, `orchestrator`, `ai-triage`, simulateur de capteurs) ont été écrits en s'appuyant sur les contrats
+> de Nour (`telemetry.proto`, `dashboard.graphql`, `workflow-api.md`, fusionnés dans `master`), sur la branche
+> `feat/partie-b-complete`. **Nour doit relire ce travail** (voir `docs/RAPPORT_FINAL.md`, section « Relecture par B »)
+> et peut le reprendre, le corriger ou le compléter : tout ce qui suit décrit l'état **avant** cette implémentation et sert
+> de cahier des charges détaillé (barème NEWS2, replis, critères de réussite), qui a été suivi.
+
 Date : 22 novembre 2026 · Auteur : personne A · Dépôt : `smart-healthcare`
 
 Ce document est écrit pour que B puisse démarrer **sans poser de question à A**. Il dit :
