@@ -1,0 +1,44 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: orchestrator
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/workflow_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+orchestrator:
+  ehr-url: ${EHR_URL:http://soap-ehr:8081/ws/ehr}
+  portal-url: ${PORTAL_URL:http://rest-portal:8082}
+  dashboard-url: ${DASHBOARD_URL:http://graphql-dashboard:8083/graphql}
+  triage-url: ${TRIAGE_URL:http://ai-triage:8086}
+  telemetry-target: ${TELEMETRY_TARGET:grpc-telemetry:9090}
+  default-acte: C                      # lettre-clé utilisée pour la vérification des droits en urgence
+  trigger-severity: CRITIQUE           # gravité minimale qui déclenche le workflow
+  timeout-ms: ${ORCHESTRATOR_TIMEOUT_MS:2000}
+  attempts: ${ORCHESTRATOR_ATTEMPTS:3} # essais par étape avant repli
+  wait-ms: ${ORCHESTRATOR_WAIT_MS:500} # attente entre deux essais
+  deferred-delay-seconds: ${ORCHESTRATOR_DEFERRED_DELAY:15}
+  deferred-max-attempts: 40
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+logging:
+  pattern:
+    level: "%5p [%X{correlationId:-}]"

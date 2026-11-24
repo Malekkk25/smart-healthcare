@@ -60,3 +60,35 @@ data: {"workflowId":"e3b0...","step":{"name":"DROITS","status":"SUCCEEDED","atte
 ```
 
 Un événement `: keepalive` (commentaire SSE) est envoyé toutes les 15 s.
+
+## Ajouts compatibles (implémentation de l'orchestrateur)
+
+Ces ajouts ne changent rien aux champs et routes ci-dessus ; un client qui les ignore continue de fonctionner.
+
+**Champs facultatifs de `Workflow`** : `severity`, `news2Score`, `reason` (l'alerte d'origine), `dispatchId`,
+`ambulanceId`, `etaMinutes`, `appointmentId` (résultat de l'étape 3 ; `appointmentId` = créneau d'urgence de repli) et
+`dossier` (la fiche d'intervention, `null` tant qu'elle n'est pas prête) :
+
+```json
+"dossier": {
+  "alerte":       { "alertId": "...", "severity": "CRITIQUE", "news2Score": 9, "reason": "..." },
+  "intervention": { "dispatchId": "DSP-2026-000087", "ambulanceId": "AMB-03", "etaMinutes": 7, "appointmentId": null, "adminAlert": null },
+  "patient":      { "id": "PAT-000004", "nom": "Bouzid", "latestVital": { }, "alerts": [ ], "treatment": { } },
+  "triage":       { "riskScore": 92, "riskLevel": "CRITIQUE", "summary": "...", "source": "llm | modele-de-phrases | template-orchestrateur" }
+}
+```
+
+**Routes supplémentaires**
+
+| Route | Rôle |
+|---|---|
+| `GET /workflows/{id}/journal` | journal d'exécution : une ligne par changement d'état d'étape (`step`, `status`, `attempt`, `detail`, `at`) |
+| `POST /workflows/{id}/cancel` | compensation (saga) : annule le rendez-vous d'urgence éventuel, abandonne les tâches différées, lève une alerte admin. Une ambulance déjà envoyée ne peut pas être rappelée (libération automatique à ETA + 10 min) |
+
+**Comportement**
+- Tâches différées : si le SOAP est en panne (étape 2) ou le GraphQL en panne (étape 4), l'étape passe en `DEGRADED`, puis
+  est **rejouée automatiquement** (toutes les 15 s, 40 essais maximum). À la réussite, l'étape passe en `SUCCEEDED`
+  (événement `STEP_UPDATED`) et le statut global est recalculé (événement `WORKFLOW_ENDED`).
+- Un SOAP Fault `DroitsExpiresFault` ou `PatientInconnuFault` est un **résultat** : l'étape 2 réussit avec le détail
+  « facturation à régulariser » et l'envoi des secours n'est jamais bloqué.
+- Le déclenchement automatique a lieu pour toute alerte gRPC de gravité `CRITIQUE` ; une alerte déjà connue (`alertId`) ne relance rien.
