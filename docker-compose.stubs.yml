@@ -1,0 +1,15 @@
+# Surcharge optionnelle : remplace le GraphQL et l'orchestrateur de B par les stubs de tools/b-stubs
+# (utile pour développer le client web sans la chaîne complète).
+#   docker compose -f docker-compose.yml -f docker-compose.stubs.yml up -d --build graphql-dashboard orchestrator
+services:
+  graphql-dashboard:
+    build:
+      context: .
+      dockerfile: tools/b-stubs/Dockerfile
+    command: ["node", "server.js", "graphql"]
+  orchestrator:
+    build:
+      context: .
+      dockerfile: tools/b-stubs/Dockerfile
+    command: ["node", "server.js", "orchestrator"]
+    depends_on: []

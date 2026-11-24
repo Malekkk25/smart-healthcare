@@ -1,0 +1,33 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: graphql-dashboard
+  graphql:
+    schema:
+      locations: classpath:graphql/
+      file-extensions: .graphql
+    graphiql:
+      enabled: true
+      path: /graphiql
+    websocket:
+      path: /graphql
+    path: /graphql
+
+dashboard:
+  rest-url: ${REST_URL:http://rest-portal:8082}
+  telemetry-target: ${TELEMETRY_TARGET:grpc-telemetry:9090}
+  timeout-ms: ${DASHBOARD_TIMEOUT_MS:3000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true

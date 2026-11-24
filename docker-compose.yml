@@ -81,39 +81,86 @@ services:
       - gateway
 
   # ---------------------------------------------------------------- Partie 2 (personne B)
-  # À ajouter par B : grpc-telemetry (9090), graphql-dashboard (8083), orchestrator (8085), ai-triage (8086).
-  # Variables attendues par la gateway : DASHBOARD_URL, DASHBOARD_WS_URL, ORCHESTRATOR_URL
-  # (par défaut http://graphql-dashboard:8083, ws://graphql-dashboard:8083, http://orchestrator:8085).
-  #
-  # En attendant les vrais services : stubs de A (tools/b-stubs), profil "stubs".
-  #   docker compose --profile stubs up -d --build
-  # Quand B ajoute ses vrais services, elle supprime les deux entrées ci-dessous (mêmes noms, mêmes ports).
 
-  graphql-dashboard:
-    profiles: ["stubs"]
+  grpc-telemetry:
     build:
       context: .
-      dockerfile: tools/b-stubs/Dockerfile
-    command: ["node", "server.js", "graphql"]
-    container_name: smart-healthcare-graphql-stub
+      dockerfile: services/grpc-telemetry/Dockerfile
+    container_name: smart-healthcare-grpc-telemetry
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/telemetry_db
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "9090:9090"
+      - "127.0.0.1:9092:9092"   # actuator HTTP (santé, métriques), accessible seulement depuis cette machine
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  graphql-dashboard:
+    build:
+      context: .
+      dockerfile: services/graphql-dashboard/Dockerfile
+    container_name: smart-healthcare-graphql-dashboard
     restart: unless-stopped
     environment:
       REST_URL: http://rest-portal:8082
+      TELEMETRY_TARGET: grpc-telemetry:9090
     ports:
       - "8083:8083"
     depends_on:
       - rest-portal
+      - grpc-telemetry
 
-  orchestrator:
-    profiles: ["stubs"]
+  ai-triage:
     build:
       context: .
-      dockerfile: tools/b-stubs/Dockerfile
-    command: ["node", "server.js", "orchestrator"]
-    container_name: smart-healthcare-orchestrator-stub
+      dockerfile: services/ai-triage/Dockerfile
+    container_name: smart-healthcare-ai-triage
     restart: unless-stopped
+    environment:
+      # Facultatif : sans clé, le résumé est généré par modèle de phrases (jamais d'erreur)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-claude-haiku-5-5}
+    ports:
+      - "8086:8086"
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    container_name: smart-healthcare-orchestrator
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/workflow_db
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      EHR_URL: http://soap-ehr:8081/ws/ehr
+      PORTAL_URL: http://rest-portal:8082
+      DASHBOARD_URL: http://graphql-dashboard:8083/graphql
+      TRIAGE_URL: http://ai-triage:8086
+      TELEMETRY_TARGET: grpc-telemetry:9090
     ports:
       - "8085:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      grpc-telemetry:
+        condition: service_started
+
+  # Simulateur de capteurs (profil "demo") : docker compose --profile demo up sensor-simulator
+  # Le scénario se règle avec SCENARIO (voir tools/sensor-simulator/README.md)
+  sensor-simulator:
+    profiles: ["demo"]
+    build:
+      context: .
+      dockerfile: tools/sensor-simulator/Dockerfile
+    container_name: smart-healthcare-sensor-simulator
+    command: ["--host", "grpc-telemetry:9090", "--scenario", "${SCENARIO:-PAT-000004:crise_cardiaque}", "--speed", "${SPEED:-5}"]
+    depends_on:
+      - grpc-telemetry
 
   # ---------------------------------------------------------------- Observabilité (profil "observability")
   #   docker compose --profile observability up -d   ->  Grafana : http://localhost:3001  (admin / GRAFANA_PASSWORD)
