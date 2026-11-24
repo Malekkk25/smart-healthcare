@@ -44,6 +44,13 @@ Ce fichier est le contrat « transverse » du projet. Toute modification doit ê
 | `medecin` | MEDECIN | |
 | `admin` | ADMIN | |
 
+### Sécurité du service SOAP (WS-Security)
+
+- Le service SOAP exige un en-tête **WS-Security UsernameToken** avec mot de passe haché (`PasswordDigest` : `Base64(SHA-1(nonce + created + mot de passe))`), un `Nonce` et un `Created` (valides 5 minutes). Un en-tête rejoué (même nonce) est refusé par un SOAP Fault.
+- Compte de service unique `ehr-client`, mot de passe `EHR_SERVICE_PASSWORD` du fichier `.env`.
+- **La Gateway** l'ajoute aux appels SOAP des utilisateurs déjà authentifiés par JWT (elle remplace tout en-tête de sécurité fourni par le client) ; **l'orchestrateur** l'ajoute à ses propres appels. Le navigateur ne détient aucun secret.
+- Le `GET /ws/ehr?wsdl` reste libre. Le WSDL ne change pas : l'exigence est appliquée à l'exécution.
+
 ## 4. Matrice d'accès à la Gateway
 
 | Route (préfixe `/api`) | PATIENT | MEDECIN | ADMIN |

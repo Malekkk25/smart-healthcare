@@ -20,6 +20,7 @@ public final class Model {
 
     /**
      * Statuts : RUNNING, COMPLETED, DEGRADED, FAILED.
+     * latitude et longitude = domicile du patient (simulé, voir HomeLocation).
      * dossier = fiche d'intervention (profil, constantes, alertes, traitement, résumé IA), absente tant qu'elle n'est pas prête.
      */
     public record Workflow(
@@ -39,7 +40,9 @@ public final class Model {
             String ambulanceId,
             Integer etaMinutes,
             String appointmentId,
-            Map<String, Object> dossier) {}
+            Map<String, Object> dossier,
+            Double latitude,
+            Double longitude) {}
 
     /** Statut global calculé à partir des étapes. */
     public static String computeStatus(List<Step> steps) {

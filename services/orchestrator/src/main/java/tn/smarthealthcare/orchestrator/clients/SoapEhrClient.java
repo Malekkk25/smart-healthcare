@@ -33,10 +33,14 @@ public class SoapEhrClient implements EhrPort {
 
     private final RestClient rest;
     private final String url;
+    private final String user;
+    private final String password;
 
     public SoapEhrClient(OrchestratorProperties props) {
         this.rest = Http.client(props.timeoutMs());
         this.url = props.ehrUrl();
+        this.user = props.ehrUser();
+        this.password = props.ehrPassword();
     }
 
     @Override
@@ -66,6 +70,8 @@ public class SoapEhrClient implements EhrPort {
     private Raw call(String operation, String content, String correlationId) {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
                 + "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ehr=\"" + NS + "\">"
+
+                + securityHeader()
                 + "<soapenv:Body><ehr:" + operation + "Request>" + content + "</ehr:" + operation + "Request></soapenv:Body></soapenv:Envelope>";
         try {
             return rest.post().uri(url)
@@ -80,6 +86,12 @@ public class SoapEhrClient implements EhrPort {
         } catch (RuntimeException e) {
             throw new ServiceUnavailableException("SOAP : " + e, e);
         }
+    }
+
+    /** En-tête WS-Security (UsernameToken haché, nonce et date neufs à chaque appel) si un mot de passe de service est configuré. */
+    private String securityHeader() {
+        if (password == null || password.isBlank()) return "";
+        return "<soapenv:Header>" + WsSecurityHeader.securityElement(user, password) + "</soapenv:Header>";
     }
 
     private static void check(String patientId, String acte) {

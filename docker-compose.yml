@@ -29,6 +29,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/ehr_db
       DB_USER: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
+      EHR_SERVICE_PASSWORD: ${EHR_SERVICE_PASSWORD:?EHR_SERVICE_PASSWORD manquant dans .env}
     ports:
       - "8081:8081"
     depends_on:
@@ -61,6 +62,7 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET manquant dans .env}
       DEMO_PASSWORD: ${DEMO_PASSWORD:?DEMO_PASSWORD manquant dans .env}
+      EHR_SERVICE_PASSWORD: ${EHR_SERVICE_PASSWORD:?EHR_SERVICE_PASSWORD manquant dans .env}
       CORS_ORIGINS: http://localhost:3000
     ports:
       - "8080:8080"
@@ -138,6 +140,7 @@ services:
       DB_USER: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       EHR_URL: http://soap-ehr:8081/ws/ehr
+      EHR_SERVICE_PASSWORD: ${EHR_SERVICE_PASSWORD:?EHR_SERVICE_PASSWORD manquant dans .env}
       PORTAL_URL: http://rest-portal:8082
       DASHBOARD_URL: http://graphql-dashboard:8083/graphql
       TRIAGE_URL: http://ai-triage:8086
