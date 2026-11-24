@@ -1,0 +1,18 @@
+# Prometheus : lit les métriques Micrometer de chaque service (profil Docker "observability")
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+  - job_name: gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["gateway:8080"]
+  - job_name: rest-portal
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["rest-portal:8082"]
+  - job_name: soap-ehr
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["soap-ehr:8081"]
+  # À ajouter par B : graphql-dashboard, orchestrator, grpc-telemetry, ai-triage

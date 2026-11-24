@@ -68,6 +68,7 @@ check "un créneau libre existe" true "$([ -n "$SLOT" ] && [ "$SLOT" != null ] &
 req POST /api/portal/appointments "{\"patientId\":\"PAT-000002\",\"slotId\":\"$SLOT\",\"motif\":\"Test de bout en bout\"}" "$TP"
 check "création de rendez-vous -> 201" 201 "$CODE"
 APT=$(echo "$BODY" | jq -r .id)
+check "lien de visio Jitsi présent" true "$(echo "$BODY" | jq '.visioUrl | startswith("https://meet.jit.si/SmartHealthcare-")')"
 check "identifiant APT-AAAA-NNNNNN" true "$(echo "$APT" | grep -Eq '^APT-[0-9]{4}-[0-9]{6}$' && echo true || echo false)"
 req POST /api/portal/appointments "{\"patientId\":\"PAT-000002\",\"slotId\":\"$SLOT\"}" "$TP"
 check "même créneau réservé deux fois -> 409" 409 "$CODE"
@@ -88,6 +89,16 @@ check "le créneau est de nouveau libre" true "$(echo "$BODY" | jq --arg s "$SLO
 req GET /api/portal/appointments/APT-0000-000000 "" "$TM"; check "RDV inconnu -> 404" 404 "$CODE"
 req GET /api/portal/patients/PAT-000002/prescriptions "" "$TP"
 check "ordonnances de PAT-000002 (>=1, médicaments présents)" true "$(echo "$BODY" | jq 'length>=1 and (.[0].medicaments|length)>=1')"
+
+echo "== Vue FHIR (lecture seule)"
+req GET /api/portal/fhir/Patient/PAT-000002 "" "$TP"
+check "FHIR Patient : resourceType et genre" "Patient male" "$(echo "$BODY" | jq -r '"\(.resourceType) \(.gender)"')"
+req GET "/api/portal/fhir/MedicationRequest?patient=PAT-000002" "" "$TP"
+check "FHIR MedicationRequest : Bundle searchset non vide" true "$(echo "$BODY" | jq '.resourceType=="Bundle" and .type=="searchset" and .total>=1')"
+req GET "/api/portal/fhir/Appointment?patient=PAT-000002" "" "$TP"
+check "FHIR Appointment : Bundle" Bundle "$(echo "$BODY" | jq -r .resourceType)"
+req GET /api/portal/fhir/Patient/PAT-000004 "" "$TP"; check "FHIR : patient1 lit un autre patient -> 403" 403 "$CODE"
+req GET "/api/portal/fhir/MedicationRequest?patient=PAT-000004" "" "$TP"; check "FHIR : ordonnances d'un autre patient -> 403" 403 "$CODE"
 
 echo "== SOAP via la Gateway (relais)"
 soap verifierDroitsCNAM '<ehr:patientId>PAT-000002</ehr:patientId><ehr:codeActe>CS</ehr:codeActe>' "$TP"
@@ -144,6 +155,20 @@ if [ "$CODE" = 503 ]; then
 else
   echo "  --   orchestrateur répond (code $CODE) : service de B démarré"
 fi
+echo "== Services de B (stubs ou vrais services) : exécuté seulement s'ils répondent"
+req POST /api/dashboard/graphql '{"query":"{ patient(id:\"PAT-000004\") { nom latestVital { heartRate } } }"}' "$TM"
+if [ "$CODE" = 200 ]; then
+  check "GraphQL via la Gateway : patient PAT-000004" Bouzid "$(echo "$BODY" | jq -r .data.patient.nom)"
+  req POST /api/dashboard/graphql '{"query":"{ patients(filtre:{niveauRisque:ELEVE}){ id } }"}' "$TM"
+  check "GraphQL : filtre niveauRisque" true "$(echo "$BODY" | jq '(.data.patients|length)>0')"
+  req POST /api/dashboard/graphql '{"query":"{ patients { id } }"}' "$TP"; check "GraphQL interdit au patient -> 403" 403 "$CODE"
+  req GET /api/orchestrator/workflows "" "$TA"; check "orchestrateur : liste des interventions -> 200" 200 "$CODE"
+else
+  echo "  --   GraphQL de B non démarré (code $CODE) : lancez docker compose --profile stubs up -d"
+fi
+echo "== Observabilité"
+req GET /actuator/prometheus
+check "métriques Prometheus de la Gateway" true "$(echo "$BODY" | grep -q '^jvm_memory_used_bytes' && echo true || echo false)"
 req GET /api/inconnu "" "$TA"; check "route inconnue -> 404 au format commun" RESSOURCE_INTROUVABLE "$(echo "$BODY" | jq -r .code)"
 curl -s -D - -o /dev/null "$GW/actuator/health" -H "X-Correlation-Id: abc-123" | grep -qi '^X-Correlation-Id: abc-123' \
   && check "X-Correlation-Id repris dans la réponse" ok ok || check "X-Correlation-Id repris dans la réponse" ok ko

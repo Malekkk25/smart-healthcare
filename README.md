@@ -13,13 +13,14 @@ Projet SOC (Service Oriented Computing) réalisé en binôme : une plateforme de
 | `grpc-telemetry` | Télémétrie des capteurs et alertes (gRPC) | 9090 | B | à faire |
 | `orchestrator` | Orchestration du workflow d'urgence | 8085 | B | à faire |
 | `ai-triage` | Triage assisté par IA | 8086 | B | à faire |
-| `web-client` | Interface web (React) | 3000 | A | livré (pages de B en attente) |
+| `web-client` | Interface web (React) | 3000 | A | livré (pages de B testées avec des stubs) |
 
 Documents :
 
 - [`docs/RAPPORT_PERSONNE_B.md`](docs/RAPPORT_PERSONNE_B.md) : ce que B doit faire, en détail.
 - [`contracts/conventions.md`](contracts/conventions.md) : identifiants, JWT, erreurs, jeu de données, ports.
-- [`contracts/`](contracts/) : `ehr.wsdl`, `portal.openapi.yaml` (livrés), `dashboard.graphql`, `workflow-api.md`, `telemetry.proto` (à écrire par B).
+- [`contracts/`](contracts/) : `ehr.wsdl`, `portal.openapi.yaml` (A), `dashboard.graphql`, `workflow-api.md`, `telemetry.proto` (B).
+- [`tools/b-stubs/`](tools/b-stubs/README.md) : stubs du GraphQL et de l'orchestrateur, pour développer sans attendre B (`docker compose --profile stubs up -d --build`).
 
 ## Structure
 
@@ -48,8 +49,24 @@ Le premier démarrage compile les services Java dans Docker (plusieurs minutes).
 
 Comptes de démonstration (mot de passe : `DEMO_PASSWORD` du fichier `.env`) : `patient1` (PAT-000002), `patient2` (PAT-000004), `medecin`, `admin`.
 
+## Observabilité (profil `observability`)
+
+```bash
+docker compose --profile observability up -d     # Prometheus : http://localhost:9091 · Grafana : http://localhost:3001
+```
+
+Grafana (compte `admin`, mot de passe `GRAFANA_PASSWORD` du `.env`) charge automatiquement le tableau « Smart Healthcare - services » : disponibilité, requêtes par seconde, erreurs 5xx, latence p95, refus 4xx, mémoire JVM. Le `correlation-id` est dans les logs de chaque service.
+
 ## Tester
 
 ```bash
-bash tools/smoke-test-a.sh     # sécurité, REST, SOAP et urgences, à travers la Gateway
+bash tools/smoke-test-a.sh     # sécurité, REST, FHIR, SOAP, urgences et services de B, à travers la Gateway
 ```
+
+Tests unitaires (JUnit, dans Docker, sans installer Maven) :
+
+```bash
+docker run --rm -v "$PWD:/repo" -v sh-m2cache:/root/.m2 -w /repo/services/rest-portal maven:3.9-eclipse-temurin-17 mvn -B test
+```
+
+(remplacer `rest-portal` par `gateway` ou `soap-ehr`).

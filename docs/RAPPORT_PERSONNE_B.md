@@ -17,8 +17,8 @@ Le plan de référence est « Smart Healthcare SOC : plan de travail en binôme 
 - La **Partie 1 (A) est livrée dans son périmètre « cœur »** : socle (dépôt, docker-compose, jeu de 20 patients), contrats `ehr.wsdl` et `portal.openapi.yaml`, service **SOAP** (8081), service **REST** (8082), **Gateway** (8080, JWT, rôles, correlation-id, CORS, limitation de débit, audit), **client web** (3000).
 - Tout démarre avec un seul `docker compose up -d --build`. Un script de test de bout en bout (`tools/smoke-test-a.sh`) vérifie la sécurité, le REST, le SOAP et les urgences à travers la Gateway.
 - **B n'est bloquée sur rien de technique** : les services de A sont réels (pas de stubs), à jour et testés. B peut brancher directement son GraphQL et son orchestrateur sur le vrai REST et le vrai SOAP.
-- Les trois contrats de B n'existent pas encore : `telemetry.proto`, `dashboard.graphql`, `workflow-api.md`. **Ils doivent être écrits et validés à deux en premier** (section 5). Des propositions complètes sont fournies : B peut les copier et les corriger.
-- Côté client web, trois pages attendent B : **fiche patient enrichie** (GraphQL), **alertes en direct** (subscription) et **interventions** (API de l'orchestrateur). Elles sont déjà créées, routées et protégées par rôle, avec un bandeau « en attente ».
+- Les trois contrats de B (`telemetry.proto`, `dashboard.graphql`, `workflow-api.md`) ont été écrits par Nour (branche `feat/contrats-b`) et **fusionnés dans `master` le 24/11/2026**. Ils reprennent les propositions de la section 5. Il reste à les **valider à deux** (relecture croisée).
+- Côté client web, les trois pages qui dépendent de B (**fiche patient enrichie** en GraphQL, **alertes en direct** par subscription, **interventions** par API et SSE) sont **déjà branchées sur ces contrats** et testées avec des **stubs** (`tools/b-stubs`, profil Docker `stubs`, mêmes noms et ports que les vrais services). Quand B livre un vrai service, elle supprime l'entrée stub correspondante dans `docker-compose.yml` : ni le client web ni la Gateway ne changent.
 - `contracts/conventions.md` était **vide** : A l'a rédigé. B doit le relire et le corriger avant qu'il devienne définitif.
 - A a ajouté **deux routes** au contrat REST (liste de patients filtrable, liste de rendez-vous d'un patient) et rendu `/emergency/dispatch` **idempotent**. Ces changements doivent être relus par B (section 13).
 
@@ -28,12 +28,13 @@ Le plan de référence est « Smart Healthcare SOC : plan de travail en binôme 
 
 | Élément | Statut |
 |---|---|
-| WS-Security (UsernameToken) sur le SOAP | non fait (prévu S5 ; le plan le classe aussi dans les innovations « cœur » : à trancher) |
-| Format inspiré de FHIR, lien Jitsi à chaque rendez-vous (bonus) | non fait |
-| Observabilité : métriques Prometheus et tableau Grafana (bonus) | non fait (le correlation-id, lui, est en place) |
-| Tests unitaires JUnit dans les services de A | non écrits : la couverture actuelle est le test de bout en bout |
+| WS-Security (UsernameToken) sur le SOAP | **volontairement non fait, décision à prendre à deux** : c'est un changement incompatible pour B (l'orchestrateur devrait envoyer un en-tête `wsse:UsernameToken` à chaque appel SOAP) et pour le navigateur (un secret ne peut pas être embarqué dans le client web). Option proposée : un compte de service dont le mot de passe vient de `.env`, ajouté par l'orchestrateur, et par la Gateway pour le navigateur. À faire en S5 si vous êtes d'accord. |
+| Format inspiré de FHIR (bonus) | **fait** : vue en lecture seule `/fhir/Patient`, `/fhir/Appointment`, `/fhir/MedicationRequest` (voir le contrat REST) |
+| Lien Jitsi à chaque rendez-vous (bonus) | **fait** : champ `visioUrl` (voir contrat REST), bouton « Visio » dans le client |
+| Observabilité : métriques Prometheus et tableau Grafana (bonus) | **fait** : profil Docker `observability` (voir section 11), correlation-id dans les logs |
+| Tests unitaires JUnit dans les services de A | **fait** : 43 tests (REST 16, Gateway 16, SOAP 11) en plus du test de bout en bout (67 vérifications) |
 | Pages admin « créneaux » et « ambulances » | lecture seule (plus un formulaire de déclenchement d'urgence pour tester) ; le contrat REST n'a pas de création de créneaux |
-| Pages qui dépendent de B | fiche patient enrichie, alertes en direct, interventions, carte d'ambulance |
+| Pages qui dépendent de B | fiche patient, alertes en direct et interventions : **branchées** (testées avec les stubs, à re-tester avec les vrais services) ; carte d'ambulance (bonus) : non faite |
 
 Le script de test crée des données à chaque exécution (rendez-vous, feuilles de soins, envois d'urgence). Pour repartir d'une base propre : `docker compose down -v && docker compose up -d`.
 
@@ -571,9 +572,20 @@ Les services de A sont déjà dedans. Ajoutez les vôtres **dans le même fichie
 - Ne mettez pas de mot de passe en dur : tout passe par `.env`.
 - Ne publiez pas de nouveau port inutile ; ceux du plan suffisent.
 
+**Stubs à retirer.** `docker-compose.yml` contient deux entrées `graphql-dashboard` et `orchestrator` avec `profiles: ["stubs"]` : ce sont les stubs de A (`tools/b-stubs`). Quand vos vrais services sont prêts, **supprimez ces deux entrées** et ajoutez les vôtres sous les mêmes noms : la Gateway et le client web n'ont rien à changer. Les stubs restent utiles pour comparer le comportement attendu (alertes simulées toutes les 30 s, interventions toutes les 45 s dont une en mode dégradé).
+
+**Observabilité.** `docker compose --profile observability up -d` démarre Prometheus (<http://localhost:9091>) et Grafana (<http://localhost:3001>, compte `admin`, mot de passe `GRAFANA_PASSWORD` du `.env`). Le tableau « Smart Healthcare - services » est chargé automatiquement. Pour que vos services y apparaissent :
+
+1. exposez `/actuator/prometheus` (Spring : dépendances `spring-boot-starter-actuator` et `micrometer-registry-prometheus`, `management.endpoints.web.exposure.include=health,prometheus`, étiquette `management.metrics.tags.application=<nom du service>` et `management.metrics.distribution.percentiles-histogram.http.server.requests=true` pour la latence p95) ; pour Python, exposez `/metrics` (bibliothèque `prometheus-client`) ;
+2. ajoutez une entrée `job_name` dans `infra/prometheus/prometheus.yml` (un exemple par service de A y est déjà).
+
+Les métriques personnalisées de B (alertes créées, score NEWS2, durée de chaque étape du workflow, nombre de replis) sont un très bon argument pour la démo.
+
 ---
 
 ## 12. Ce que A attend de B (pour finir les pages du client web)
+
+> **Mise à jour du 24/11/2026** : les trois pages ci-dessous sont déjà écrites et fonctionnent contre les stubs (`docker compose --profile stubs up -d --build`). Il reste, côté A, à les **re-tester avec les vrais services** de B et à ajuster d'éventuels écarts de contrat. Le tableau décrit la situation d'origine.
 
 | Page du client web (A) | Bloquée par | Quand c'est livré, A fait |
 |---|---|---|

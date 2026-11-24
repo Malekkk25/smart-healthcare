@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: smart-healthcare
+    folder: Smart Healthcare
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards
